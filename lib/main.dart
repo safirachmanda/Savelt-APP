@@ -5,8 +5,11 @@ import 'alisha/ReportsPage.dart';
 import 'alisha/BillsPage.dart';
 import 'alisha/AccountPage.dart';
 import 'alisha/landingpage.dart'; // Harus punya LandingPage()
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 

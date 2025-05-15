@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'signup.dart';
 import 'HomePage.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Tambahkan ini
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,30 +16,40 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    await Future.delayed(const Duration(milliseconds: 500));
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
 
-    if (_emailController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Login Berhasil!')),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan Password wajib diisi!')),
-      );
+    // Login berhasil
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Login Berhasil!')),
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
+    );
+  } on FirebaseAuthException catch (e) {
+    String message = 'Terjadi kesalahan';
+    if (e.code == 'user-not-found') {
+      message = 'Email tidak ditemukan.';
+    } else if (e.code == 'wrong-password') {
+      message = 'Password salah.';
     }
 
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  } finally {
     setState(() {
       _isLoading = false;
     });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
