@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "389744187523",
+    "project_id": "savelt",
+    "storage_bucket": "savelt.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389744187523:android:920ca8a9a13fc5d02e23b6",
+        "android_client_info": {
+          "package_name": "com.example.savelt4"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpOXIar8LjkwCPadOpZKokIxKU84LthTA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

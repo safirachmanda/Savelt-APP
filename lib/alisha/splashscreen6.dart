@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../main.dart'; // pastikan 'main.dart' mengandung MainPage() atau halaman utama lainnya
 import 'signup.dart';
+import 'login.dart';
 
 class SplashScreen6 extends StatelessWidget {
   const SplashScreen6({super.key});
@@ -54,7 +55,7 @@ class SplashScreen6 extends StatelessWidget {
                         onPressed: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => MainScreen()), // Pastikan MainPage() ada di main.dart
+                            MaterialPageRoute(builder: (context) => const LoginPage()), // Pastikan MainPage() ada di main.dart
                           );
                         },
                         child: const Text(

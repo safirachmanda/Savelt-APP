@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'login.dart';
 import 'HomePage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -17,33 +19,59 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
 
   Future<void> _signUp() async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    await Future.delayed(const Duration(milliseconds: 500));
+  if (_displayNameController.text.isNotEmpty &&
+      _emailController.text.isNotEmpty &&
+      _passwordController.text.isNotEmpty &&
+      _confirmPasswordController.text == _passwordController.text) {
+    try {
+      // 1. Buat akun di Firebase Auth
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text.trim());
 
-    if (_displayNameController.text.isNotEmpty &&
-        _emailController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
-        _confirmPasswordController.text == _passwordController.text) {
+      // 2. Update display name
+      await userCredential.user?.updateDisplayName(_displayNameController.text);
+
+      // 3. Simpan data akun ke Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'uid': userCredential.user!.uid,
+        'displayName': _displayNameController.text,
+        'email': _emailController.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign Up Berhasil!')),
       );
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
-    } else {
+    } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password Tidak Cocok!')),
+        SnackBar(content: Text(e.message ?? 'Terjadi kesalahan')),
       );
     }
-
-    setState(() {
-      _isLoading = false;
-    });
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password Tidak Cocok!')),
+    );
   }
+
+  setState(() {
+    _isLoading = false;
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
