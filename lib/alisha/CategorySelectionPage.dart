@@ -70,10 +70,14 @@ class CategoryItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigasi ke BillSettingsPage setelah dipilih
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => BillSettingsPage()),
+          MaterialPageRoute(
+            builder: (context) => BillSettingsPage(
+              categoryTitle: title,
+              categoryIcon: icon,
+            ),
+          ),
         );
       },
       child: Column(
@@ -81,7 +85,7 @@ class CategoryItem extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: Colors.blue.withOpacity(0.1), // Warna tetap sama
+            backgroundColor: Colors.blue.withOpacity(0.1),
             child: Icon(icon, color: Colors.blue, size: 30),
           ),
           SizedBox(height: 8),
