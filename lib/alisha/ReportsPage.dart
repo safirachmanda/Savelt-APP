@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'PemasukanAddPage.dart';
+import 'PengeluaranAddPage.dart';
+import 'HomePage.dart';
+import 'BillsPage.dart';
+import 'TargetPage.dart';
+import 'AccountPage.dart';
 
 void main() {
   runApp(const SaveltApp());
@@ -30,11 +35,13 @@ class _ReportsPageState extends State<ReportsPage> {
   double pemasukan = 900000;
   double pengeluaran = 600000;
   double sisaUang = 1000000;
+  int _selectedIndex = 2;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Report', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert))],
       ),
@@ -49,7 +56,8 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildPieChart(),
           ],
         ),
-      )
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -68,12 +76,68 @@ class _ReportsPageState extends State<ReportsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildInfoCard('Pemasukan', 'Rp ${pemasukan.toInt()}', Colors.blueAccent),
-                _buildInfoCard('Pengeluaran', 'Rp ${pengeluaran.toInt()}', Colors.purpleAccent),
+                Expanded(
+                  child: _buildInfoCard(
+                    title: 'Pemasukan',
+                    amount: 'Rp ${pemasukan.toInt()}',
+                    color: Colors.blueAccent,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => PemasukanAddPage()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _buildInfoCard(
+                    title: 'Pengeluaran',
+                    amount: 'Rp ${pengeluaran.toInt()}',
+                    color: Colors.purpleAccent,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => PengeluaranAddPage()),
+                      );
+                    },
+                  ),
+                ),
               ],
             )
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required String amount,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(colors: [color.withOpacity(0.5), color]),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white)),
+              Text(amount, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle, color: Colors.white),
+            onPressed: onPressed,
+          ),
+        ],
       ),
     );
   }
@@ -112,6 +176,16 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
+  BarChartGroupData _buildBarGroup(int x, double y1, double y2) {
+    return BarChartGroupData(
+      x: x,
+      barRods: [
+        BarChartRodData(toY: y1, color: Colors.blue, width: 15),
+        BarChartRodData(toY: y2, color: Colors.purple, width: 15),
+      ],
+    );
+  }
+
   Widget _buildPieChart() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -142,29 +216,39 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _buildInfoCard(String title, String amount, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(colors: [color.withOpacity(0.5), color]),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: Colors.white)),
-          Text(amount, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-        ],
-      ),
-    );
-  }
-
-   BarChartGroupData _buildBarGroup(int x, double y1, double y2) {
-    return BarChartGroupData(
-      x: x,
-      barRods: [
-        BarChartRodData(toY: y1, color: Colors.blue, width: 15),
-        BarChartRodData(toY: y2, color: Colors.purple, width: 15),
+  Widget _buildBottomNavBar() {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.blue,
+      selectedItemColor: Colors.white,
+      unselectedItemColor: Colors.white70,
+      onTap: (index) {
+        if (index == _selectedIndex) return;
+        setState(() => _selectedIndex = index);
+        switch (index) {
+          case 0:
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+            break;
+          case 1:
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BillsPage()));
+            break;
+          case 2:
+            break;
+          case 3:
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => TargetPage()));
+            break;
+          case 4:
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AccountPage()));
+            break;
+        }
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
+        BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+        BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );
   }

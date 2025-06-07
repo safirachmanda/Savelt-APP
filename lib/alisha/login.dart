@@ -16,17 +16,26 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+  String email = _emailController.text.trim();
+  String password = _passwordController.text.trim();
+
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email dan password tidak boleh kosong')),
+    );
+    return;
+  }
+
   setState(() {
     _isLoading = true;
   });
 
   try {
-    UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: password,
     );
 
-    // Login berhasil
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Login Berhasil!')),
     );
@@ -35,21 +44,30 @@ class _LoginPageState extends State<LoginPage> {
       MaterialPageRoute(builder: (context) => const HomeScreen()),
     );
   } on FirebaseAuthException catch (e) {
-    String message = 'Terjadi kesalahan';
+    // Cetak kode error ke debug console
+    debugPrint("FirebaseAuthException: ${e.code}");
+
+    String message = 'Terjadi kesalahan. Silakan coba lagi.';
     if (e.code == 'user-not-found') {
       message = 'Email tidak ditemukan.';
     } else if (e.code == 'wrong-password') {
-      message = 'Password salah.';
+      message = 'Password tidak cocok.';
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  } catch (e) {
+    debugPrint("Unexpected error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Terjadi kesalahan tak terduga.')),
+    );
   } finally {
     setState(() {
       _isLoading = false;
     });
   }
 }
-
 
   @override
   Widget build(BuildContext context) {

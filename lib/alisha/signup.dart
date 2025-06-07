@@ -18,52 +18,73 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _signUp() async {
+Future<void> _signUp() async {
   setState(() {
     _isLoading = true;
   });
 
-  if (_displayNameController.text.isNotEmpty &&
-      _emailController.text.isNotEmpty &&
-      _passwordController.text.isNotEmpty &&
-      _confirmPasswordController.text == _passwordController.text) {
-    try {
-      // 1. Buat akun di Firebase Auth
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-              email: _emailController.text.trim(),
-              password: _passwordController.text.trim());
+  String name = _displayNameController.text.trim();
+  String email = _emailController.text.trim();
+  String password = _passwordController.text;
+  String confirmPassword = _confirmPasswordController.text;
 
-      // 2. Update display name
-      await userCredential.user?.updateDisplayName(_displayNameController.text);
-
-      // 3. Simpan data akun ke Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
-        'uid': userCredential.user!.uid,
-        'displayName': _displayNameController.text,
-        'email': _emailController.text.trim(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign Up Berhasil!')),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Terjadi kesalahan')),
-      );
-    }
-  } else {
+  // Validasi
+  if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password Tidak Cocok!')),
+      const SnackBar(content: Text('Semua field harus diisi!')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  if (!_isEmailValid(email)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email tidak valid!')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  if (password.length < 6) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password minimal 6 karakter!')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  if (password != confirmPassword) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Password tidak cocok!')),
+    );
+    setState(() => _isLoading = false);
+    return;
+  }
+
+  try {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    await userCredential.user?.updateDisplayName(name);
+
+    await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+      'uid': userCredential.user!.uid,
+      'displayName': name,
+      'email': email,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sign Up Berhasil!')),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  } on FirebaseAuthException catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.message ?? 'Terjadi kesalahan')),
     );
   }
 
@@ -72,6 +93,10 @@ class _SignUpPageState extends State<SignUpPage> {
   });
 }
 
+bool _isEmailValid(String email) {
+  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  return emailRegex.hasMatch(email);
+}
 
   @override
   Widget build(BuildContext context) {

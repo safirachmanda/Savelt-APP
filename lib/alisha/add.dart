@@ -3,11 +3,11 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 void main() {
-  runApp(const SaveltApp());
+  runApp(const add());
 }
 
-class SaveltApp extends StatelessWidget {
-  const SaveltApp({super.key});
+class add extends StatelessWidget {
+  const add({super.key});
 
   @override
   Widget build(BuildContext context) {

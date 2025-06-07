@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BillSettingsPage extends StatefulWidget {
+  final String categoryTitle;
+  final IconData categoryIcon;
+
+  BillSettingsPage({required this.categoryTitle, required this.categoryIcon});
+
   @override
   _BillSettingsPageState createState() => _BillSettingsPageState();
 }
@@ -11,11 +17,45 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
   String? selectedFrequency;
   final List<String> frequencies = ['Harian', 'Mingguan', 'Bulanan', 'Tahunan'];
 
+  Future<void> _saveBillToFirestore() async {
+    if (selectedDate == null || _amountController.text.isEmpty || selectedFrequency == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Semua kolom harus diisi')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('bills').add({
+        'due_date': selectedDate,
+        'amount': _amountController.text,
+        'frequency': selectedFrequency,
+        'title': widget.categoryTitle,
+        'icon_code': widget.categoryIcon.codePoint,
+        'icon_font_family': widget.categoryIcon.fontFamily,
+        'description': 'Repeat $selectedFrequency sampai tanggal ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+        'color': Colors.blue.value,
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tagihan berhasil ditambahkan')),
+      );
+
+      Navigator.pop(context); // kembali ke halaman sebelumnya
+    } catch (e) {
+      print('Error saving to Firestore: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan tagihan')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pengaturan Tagihan'),
+        title: Text('Atur ${widget.categoryTitle}'),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
@@ -26,15 +66,20 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Text(
-                'Atur kapan tenggat waktu, besaran nominal, dan frekuensi tagihan',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    child: Icon(widget.categoryIcon, color: Colors.blue, size: 30),
+                  ),
+                  SizedBox(height: 8),
+                  Text(widget.categoryTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
             SizedBox(height: 20),
 
-            // PILIH TANGGAL
             Text('Kapan tenggat waktu?', style: TextStyle(fontWeight: FontWeight.bold)),
             GestureDetector(
               onTap: () async {
@@ -72,7 +117,6 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
             ),
             SizedBox(height: 20),
 
-            // INPUT NOMINAL
             Text('Berapa besar nominalnya?', style: TextStyle(fontWeight: FontWeight.bold)),
             TextField(
               controller: _amountController,
@@ -85,7 +129,6 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
             ),
             SizedBox(height: 20),
 
-            // PILIH FREKUENSI
             Text('Berapa frekuensi pengulangannya?', style: TextStyle(fontWeight: FontWeight.bold)),
             DropdownButtonFormField<String>(
               value: selectedFrequency,
@@ -107,11 +150,8 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
             ),
             SizedBox(height: 20),
 
-            // TOMBOL TAMBAH TAGIHAN
             GestureDetector(
-              onTap: () {
-                // Tambahkan logika penyimpanan di sini
-              },
+              onTap: _saveBillToFirestore,
               child: Container(
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(vertical: 15),
@@ -133,4 +173,3 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
     );
   }
 }
-

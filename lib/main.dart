@@ -6,11 +6,15 @@ import 'alisha/BillsPage.dart';
 import 'alisha/AccountPage.dart';
 import 'alisha/landingpage.dart'; // Harus punya LandingPage()
 import 'package:firebase_core/firebase_core.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,);
+  await initializeDateFormatting('id', null); // 'id' untuk locale Indonesia
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
