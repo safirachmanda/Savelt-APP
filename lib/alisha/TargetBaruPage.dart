@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class TargetBaruPage extends StatefulWidget {
   @override
@@ -14,6 +15,7 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   DateTime? _startDate;
   DateTime? _endDate;
   String _selectedFrequency = 'Harian';
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final List<Map<String, String>> frequencyOptions = [
     {'label': 'Harian', 'value': 'Harian'},
@@ -46,6 +48,14 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   Future<void> _saveTargetToFirebase() async {
     final name = _nameController.text;
     final targetAmount = int.tryParse(_targetAmountController.text) ?? 0;
+    final User? user = _auth.currentUser;
+    
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anda belum login')),
+      );
+      return;
+    }
 
     if (name.isEmpty || _startDate == null || _endDate == null || targetAmount < 500) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,11 +113,12 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
       final docRef = await FirebaseFirestore.instance.collection('target_tabungan').add({
         'nama': name,
         'target': targetAmount,
-        'targetTerkumpul': 0, // Sesuai permintaan: 0
+        'targetTerkumpul': 0,
         'mulaiMenabung': _startDate!.toIso8601String(),
         'selesaiMenabung': _endDate!.toIso8601String(),
         'frekuensi': _selectedFrequency,
         'dibuatPada': FieldValue.serverTimestamp(),
+        'uid': user.uid,
       });
 
       for (final date in finalDates) {
@@ -115,10 +126,15 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
           'tanggalMenabung': date.toIso8601String(),
           'nominal': nominalPerChecklist,
           'status': false,
+          'uid': user.uid,
         });
       }
 
-      Navigator.pop(context);
+      // Show success message and navigate back
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Target berhasil disimpan')),
+      );
+      Navigator.pop(context); // Navigate back to previous screen
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan: $e')),

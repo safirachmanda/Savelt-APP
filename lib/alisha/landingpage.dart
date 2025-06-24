@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async'; // untuk Timer
 import 'splashscreen1.dart';
 
 void main() {
@@ -17,8 +18,25 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Timer untuk navigasi otomatis setelah 3 detik
+    Timer(const Duration(seconds: 5), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SplashScreen1()),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,8 +55,7 @@ class LandingPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Gambar dompet
-            Image.asset('assets/savelt.png', width: 200)
-,
+            Image.asset('assets/savelt.png', width: 200),
             const SizedBox(height: 20),
             // Teks utama
             RichText(
@@ -70,23 +87,6 @@ class LandingPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 50),
-            // Tombol navigasi ke halaman berikutnya
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SplashScreen1()),
-                    );
-                  },
-                  icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 28),
-                ),
               ),
             ),
           ],

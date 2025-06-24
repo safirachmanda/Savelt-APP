@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'CategorySelectionPage.dart';
 import 'HomePage.dart';
@@ -14,6 +15,58 @@ class BillsPage extends StatefulWidget {
 
 class _BillsPageState extends State<BillsPage> {
   final DateFormat _dateFormat = DateFormat('dd MMM yyyy');
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Debugging variables
+  bool _isLoading = true;
+  String _debugMessage = '';
+  List<String> _debugLogs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _addDebugLog('BillsPage initialized');
+    _checkUserAuth();
+  }
+
+  void _checkUserAuth() {
+    _addDebugLog('Checking user authentication');
+    if (_auth.currentUser == null) {
+      _addDebugLog('No user logged in', isError: true);
+      setState(() {
+        _isLoading = false;
+        _debugMessage = 'No user authenticated';
+      });
+    } else {
+      _addDebugLog('User authenticated: ${_auth.currentUser?.uid}');
+    }
+  }
+
+  void _addDebugLog(String message, {bool isError = false}) {
+    final timestamp = DateTime.now().toIso8601String();
+    final logEntry = '$timestamp - ${isError ? 'ERROR' : 'DEBUG'}: $message';
+    _debugLogs.add(logEntry);
+    if (isError) {
+      debugPrint('🔥 $logEntry');
+    } else {
+      debugPrint('ℹ️ $logEntry');
+    }
+  }
+
+  Stream<QuerySnapshot> _getBillsStream() {
+    _addDebugLog('Getting bills stream for user: ${_auth.currentUser?.uid}');
+    try {
+      return _firestore
+          .collection('bills')
+          .where('uid', isEqualTo: _auth.currentUser?.uid)
+          .orderBy('created_at', descending: true)
+          .snapshots();
+    } catch (e) {
+      _addDebugLog('Error getting bills stream: $e', isError: true);
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +77,12 @@ class _BillsPageState extends State<BillsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.bug_report),
+            onPressed: () => _showDebugInfo(context),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
@@ -33,24 +92,52 @@ class _BillsPageState extends State<BillsPage> {
             SizedBox(height: 20),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('bills')
-                    .orderBy('created_at', descending: true)
-                    .snapshots(),
+                stream: _getBillsStream(),
                 builder: (context, snapshot) {
+                  _addDebugLog('StreamBuilder state: ${snapshot.connectionState}');
+                  
                   if (snapshot.connectionState == ConnectionState.waiting) {
+                    _addDebugLog('Waiting for bills data');
                     return Center(child: CircularProgressIndicator());
                   }
+
+                  if (snapshot.hasError) {
+                    _addDebugLog('Error in bills stream: ${snapshot.error}', isError: true);
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Error loading bills'),
+                          SizedBox(height: 10),
+                          Text(
+                            snapshot.error.toString(),
+                            style: TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    _addDebugLog('No bills data available');
                     return Center(child: Text('Belum ada tagihan'));
                   }
 
+                  _addDebugLog('Received ${snapshot.data!.docs.length} bills');
                   return ListView(
                     children: snapshot.data!.docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
+                      _addDebugLog('Processing bill: ${doc.id} - ${data['title']}');
+
+                      // Debug data validation
+                      if (data['icon_code'] == null || data['icon_font_family'] == null) {
+                        _addDebugLog('Missing icon data for bill ${doc.id}', isError: true);
+                      }
+
                       final icon = IconData(
-                        data['icon_code'],
-                        fontFamily: data['icon_font_family'],
+                        data['icon_code'] ?? Icons.error.codePoint,
+                        fontFamily: data['icon_font_family'] ?? 'MaterialIcons',
                       );
 
                       final dueDateTimestamp = data['due_date'] as Timestamp?;
@@ -66,7 +153,7 @@ class _BillsPageState extends State<BillsPage> {
                         amount: 'Rp ${data['amount']}',
                         rawAmount: data['amount'].toString(),
                         description: data['description'] ?? '',
-                        iconColor: Color(data['color']),
+                        iconColor: Color(data['color'] ?? Colors.grey.value),
                         dueDate: dueDate,
                         frequency: data['frequency'] ?? '',
                       );
@@ -78,6 +165,7 @@ class _BillsPageState extends State<BillsPage> {
             SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () {
+                _addDebugLog('Navigating to CategorySelectionPage');
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => CategorySelectionPage()),
@@ -97,6 +185,57 @@ class _BillsPageState extends State<BillsPage> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  void _showDebugInfo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Debug Information'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('User UID: ${_auth.currentUser?.uid ?? 'Not authenticated'}'),
+              SizedBox(height: 10),
+              Text('Debug Logs:', style: TextStyle(fontWeight: FontWeight.bold)),
+              SizedBox(height: 5),
+              Container(
+                height: 300,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                padding: EdgeInsets.all(8),
+                child: ListView(
+                  children: _debugLogs.reversed.map((log) => 
+                    Text(log, style: TextStyle(
+                      fontSize: 12,
+                      color: log.contains('ERROR') ? Colors.red : Colors.black,
+                    ))
+                  ).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _debugLogs.clear();
+                _addDebugLog('Logs cleared');
+              });
+            },
+            child: Text('Clear Logs'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -152,16 +291,26 @@ class _BillsPageState extends State<BillsPage> {
                     IconButton(
                       icon: Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
+                        _addDebugLog('Editing bill: $docId');
                         _showEditDialog(context, docId, rawAmount, description, dueDate, frequency);
                       },
                     ),
                     IconButton(
                       icon: Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
-                        await FirebaseFirestore.instance.collection('bills').doc(docId).delete();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Tagihan berhasil dihapus')),
-                        );
+                        _addDebugLog('Attempting to delete bill: $docId');
+                        try {
+                          await _firestore.collection('bills').doc(docId).delete();
+                          _addDebugLog('Successfully deleted bill: $docId');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Tagihan berhasil dihapus')),
+                          );
+                        } catch (e) {
+                          _addDebugLog('Error deleting bill: $e', isError: true);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Gagal menghapus tagihan')),
+                          );
+                        }
                       },
                     ),
                   ],
@@ -192,7 +341,9 @@ class _BillsPageState extends State<BillsPage> {
     if (currentDueDate.isNotEmpty && currentDueDate != '-') {
       try {
         selectedDate = _dateFormat.parse(currentDueDate);
+        _addDebugLog('Parsed due date: $selectedDate');
       } catch (e) {
+        _addDebugLog('Error parsing due date: $e', isError: true);
         selectedDate = null;
       }
     }
@@ -254,6 +405,7 @@ class _BillsPageState extends State<BillsPage> {
                         if (picked != null) {
                           setState(() {
                             selectedDate = picked;
+                            _addDebugLog('Selected new due date: $picked');
                           });
                         }
                       },
@@ -265,29 +417,47 @@ class _BillsPageState extends State<BillsPage> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                _addDebugLog('Edit dialog cancelled');
+                Navigator.pop(context);
+              },
               child: Text('Batal'),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (selectedDate == null) {
+                  _addDebugLog('No due date selected', isError: true);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Tanggal jatuh tempo harus dipilih')),
                   );
                   return;
                 }
 
-                await FirebaseFirestore.instance.collection('bills').doc(docId).update({
-                  'amount': amountController.text,
-                  'description': descController.text,
-                  'frequency': dropdownValue,
-                  'due_date': Timestamp.fromDate(selectedDate!),
-                });
+                try {
+                  _addDebugLog('Updating bill $docId with: '
+                      'amount=${amountController.text}, '
+                      'description=${descController.text}, '
+                      'frequency=$dropdownValue, '
+                      'due_date=$selectedDate');
 
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Tagihan berhasil diperbarui')),
-                );
+                  await _firestore.collection('bills').doc(docId).update({
+                    'amount': amountController.text,
+                    'description': descController.text,
+                    'frequency': dropdownValue,
+                    'due_date': Timestamp.fromDate(selectedDate!),
+                  });
+
+                  _addDebugLog('Successfully updated bill $docId');
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Tagihan berhasil diperbarui')),
+                  );
+                } catch (e) {
+                  _addDebugLog('Error updating bill: $e', isError: true);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal memperbarui tagihan')),
+                  );
+                }
               },
               child: Text('Simpan'),
             ),
@@ -305,6 +475,7 @@ class _BillsPageState extends State<BillsPage> {
       unselectedItemColor: Colors.white70,
       currentIndex: 1, // Index untuk halaman ini
       onTap: (index) {
+        _addDebugLog('Bottom nav bar tapped: $index');
         switch (index) {
           case 0:
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
