@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'TargetBaruPage.dart';
 import 'HomePage.dart';
 import 'BillsPage.dart';
@@ -15,6 +16,14 @@ class TargetPage extends StatefulWidget {
 
 class _TargetPageState extends State<TargetPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = _auth.currentUser;
+  }
 
   void _deleteTarget(String docId) async {
     await _firestore.collection('target_tabungan').doc(docId).delete();
@@ -55,194 +64,215 @@ class _TargetPageState extends State<TargetPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Target Tabungan'),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('target_tabungan').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Text(
-                'Belum ada target tabungan\nTambahkan target baru dengan tombol +',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: _currentUser == null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Anda belum login'),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (_) => AccountPage()),
+                      );
+                    },
+                    child: Text('Login'),
+                  ),
+                ],
               ),
-            );
-          }
+            )
+          : StreamBuilder<QuerySnapshot>(
+              stream: _firestore
+                  .collection('target_tabungan')
+                  .where('uid', isEqualTo: _currentUser!.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
 
-          final docs = snapshot.data!.docs;
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final docId = doc.id;
-              final targetAmount = (data['target'] as num?)?.toDouble() ?? 0.0;
-              final name = data['nama'] ?? 'Target Tanpa Nama';
-              
-              // Handle date parsing safely
-              final startDate = _parseDate(data['mulaiMenabung']);
-              final endDate = _parseDate(data['selesaiMenabung']);
-
-              return FutureBuilder<double>(
-                future: _calculateSavedAmount(docId),
-                builder: (context, savedSnapshot) {
-                  final savedAmount = savedSnapshot.hasData ? savedSnapshot.data! : 0.0;
-                  final progress = targetAmount > 0 ? (savedAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
-
-                  // Update saved amount in Firestore if different
-                  if (savedSnapshot.hasData) {
-                    final currentSaved = (data['targetTerkumpul'] as num?)?.toDouble() ?? 0.0;
-                    if (currentSaved != savedAmount) {
-                      _firestore.collection('target_tabungan').doc(docId).update({
-                        'targetTerkumpul': savedAmount,
-                      });
-                    }
-                  }
-
-                  return Card(
-                    margin: EdgeInsets.all(12),
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                if (snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Belum ada target tabungan\nTambahkan target baru dengan tombol +',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF4CA1AF),
-                            Color(0xFF2C3E50),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ExpansionTile(
-                        title: Text(
-                          name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            fontSize: 18,
+                  );
+                }
+
+                final docs = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final doc = docs[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final docId = doc.id;
+                    final targetAmount = (data['target'] as num?)?.toDouble() ?? 0.0;
+                    final name = data['nama'] ?? 'Target Tanpa Nama';
+                    
+                    // Handle date parsing safely
+                    final startDate = _parseDate(data['mulaiMenabung']);
+                    final endDate = _parseDate(data['selesaiMenabung']);
+
+                    return FutureBuilder<double>(
+                      future: _calculateSavedAmount(docId),
+                      builder: (context, savedSnapshot) {
+                        final savedAmount = savedSnapshot.hasData ? savedSnapshot.data! : 0.0;
+                        final progress = targetAmount > 0 ? (savedAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
+
+                        // Update saved amount in Firestore if different
+                        if (savedSnapshot.hasData) {
+                          final currentSaved = (data['targetTerkumpul'] as num?)?.toDouble() ?? 0.0;
+                          if (currentSaved != savedAmount) {
+                            _firestore.collection('target_tabungan').doc(docId).update({
+                              'targetTerkumpul': savedAmount,
+                            });
+                          }
+                        }
+
+                        return Card(
+                          margin: EdgeInsets.all(12),
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 4),
-                            LinearProgressIndicator(
-                              value: progress,
-                              backgroundColor: Colors.white24,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              minHeight: 6,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Rp${NumberFormat('#,###').format(savedAmount)} / Rp${NumberFormat('#,###').format(targetAmount)}',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0xFF4CA1AF),
+                                  Color(0xFF2C3E50),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          ],
-                        ),
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildDetailRow(
-                                  Icons.calendar_today,
-                                  'Mulai: ${DateFormat('dd MMM yyyy').format(startDate)}',
+                            child: ExpansionTile(
+                              title: Text(
+                                name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 18,
                                 ),
-                                SizedBox(height: 8),
-                                _buildDetailRow(
-                                  Icons.event_available,
-                                  'Target: ${DateFormat('dd MMM yyyy').format(endDate)}',
-                                ),
-                                SizedBox(height: 8),
-                                _buildDetailRow(
-                                  Icons.attach_money,
-                                  'Target: Rp${NumberFormat('#,###').format(targetAmount)}',
-                                ),
-                                SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () => _deleteTarget(docId),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red[700],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Hapus',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 4),
+                                  LinearProgressIndicator(
+                                    value: progress,
+                                    backgroundColor: Colors.white24,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    minHeight: 6,
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Rp${NumberFormat('#,###').format(savedAmount)} / Rp${NumberFormat('#,###').format(targetAmount)}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
                                     ),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => ChecklistPage(
-                                              tabunganId: docId,
+                                  ),
+                                ],
+                              ),
+                              children: [
+                                Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _buildDetailRow(
+                                        Icons.calendar_today,
+                                        'Mulai: ${DateFormat('dd MMM yyyy').format(startDate)}',
+                                      ),
+                                      SizedBox(height: 8),
+                                      _buildDetailRow(
+                                        Icons.event_available,
+                                        'Target: ${DateFormat('dd MMM yyyy').format(endDate)}',
+                                      ),
+                                      SizedBox(height: 8),
+                                      _buildDetailRow(
+                                        Icons.attach_money,
+                                        'Target: Rp${NumberFormat('#,###').format(targetAmount)}',
+                                      ),
+                                      SizedBox(height: 16),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          ElevatedButton(
+                                            onPressed: () => _deleteTarget(docId),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red[700],
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Hapus',
+                                              style: TextStyle(color: Colors.white),
                                             ),
                                           ),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green[700],
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => ChecklistPage(
+                                                    tabunganId: docId,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.green[700],
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Lihat Checklist',
+                                              style: TextStyle(color: Colors.white),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      child: Text(
-                                        'Lihat Checklist',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
       bottomNavigationBar: _buildBottomNavBar(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => TargetBaruPage()),
-          );
-        },
-        child: Icon(Icons.add, color: Colors.white),
-        backgroundColor: Colors.blue,
-      ),
+      floatingActionButton: _currentUser == null
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => TargetBaruPage()),
+                );
+              },
+              child: Icon(Icons.add, color: Colors.white),
+              backgroundColor: Colors.blue,
+            ),
     );
   }
 

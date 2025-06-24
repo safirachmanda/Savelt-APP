@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'BillsPage.dart'; // Import Firebase Auth
 
 class BillSettingsPage extends StatefulWidget {
   final String categoryTitle;
@@ -18,6 +20,18 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
   final List<String> frequencies = ['Harian', 'Mingguan', 'Bulanan', 'Tahunan'];
 
   Future<void> _saveBillToFirestore() async {
+    // Get current user
+    User? user = FirebaseAuth.instance.currentUser;
+    
+    // Check if user is logged in
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Anda harus login terlebih dahulu')),
+      );
+      return;
+    }
+
+    // Validate form fields
     if (selectedDate == null || _amountController.text.isEmpty || selectedFrequency == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Semua kolom harus diisi')),
@@ -26,6 +40,7 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
     }
 
     try {
+      // Save to Firestore with user ID
       await FirebaseFirestore.instance.collection('bills').add({
         'due_date': selectedDate,
         'amount': _amountController.text,
@@ -36,17 +51,22 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
         'description': 'Repeat $selectedFrequency sampai tanggal ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
         'color': Colors.blue.value,
         'created_at': FieldValue.serverTimestamp(),
+        'uid': user.uid, // Add user ID to the document
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Tagihan berhasil ditambahkan')),
       );
 
-      Navigator.pop(context); // kembali ke halaman sebelumnya
+      Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(builder: (context) => BillsPage()),
+  (route) => false, // Ini akan menghapus semua halaman sebelumnya
+);
     } catch (e) {
       print('Error saving to Firestore: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan tagihan')),
+        SnackBar(content: Text('Gagal menyimpan tagihan: ${e.toString()}')),
       );
     }
   }

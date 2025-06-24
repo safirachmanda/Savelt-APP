@@ -1,4 +1,4 @@
-package com.example.savelt4
+package com.example.Savelt
 
 import io.flutter.embedding.android.FlutterActivity
 

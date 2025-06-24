@@ -7,7 +7,7 @@ import 'TargetPage.dart';
 import 'BillsPage.dart';
 import 'ReportsPage.dart';
 import 'AccountPage.dart';
-import 'package:savelt4/widget/profilebox.dart';
+import 'package:Savelt/widget/profilebox.dart';
 
 void main() {
   runApp(const MyApp());
@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double totalIncome = 0;
   double totalExpense = 0;
   double totalSavings = 0;
-  double reportIncome = 0; // New field for income from reports collection
+  double reportIncome = 0;
   List<Map<String, dynamic>> reminders = [];
   List<Map<String, dynamic>> weeklyExpenses = List.generate(7, (index) => {'amount': 0});
   List<Map<String, dynamic>> budgets = [];
@@ -58,7 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchWeeklyExpenses();
     _fetchBudgets();
     _fetchBudgetComparisons();
-    _fetchReportIncome(); // New method to fetch income from reports
+    _fetchReportIncome();
   }
 
   Future<void> _fetchFinancialData() async {
@@ -100,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // New method to fetch income from reports collection
   Future<void> _fetchReportIncome() async {
     try {
       DocumentSnapshot reportSnapshot = await _firestore
@@ -128,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
       
       var billsSnapshot = await _firestore
           .collection('bills')
+          .where('uid', isEqualTo: uid)  // Filter by current user's UID
           .where('due_date', isGreaterThanOrEqualTo: now)
           .where('due_date', isLessThanOrEqualTo: nextWeek)
           .orderBy('due_date')
@@ -164,7 +164,6 @@ class _HomeScreenState extends State<HomeScreen> {
       DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
 
-      // Fetch expenses from the pengeluaran collection
       var expenseSnapshot = await _firestore
           .collection('reports')
           .doc(uid)
@@ -173,14 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
           .where('tanggal', isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(endOfWeek))
           .get();
 
-      // Initialize weekly expenses with 0 amounts
       List<Map<String, dynamic>> expenses = List.generate(7, (index) => {'amount': 0});
 
-      // Process each expense document
       for (var doc in expenseSnapshot.docs) {
         var data = doc.data();
         DateTime expenseDate = DateFormat('yyyy-MM-dd').parse(data['tanggal']);
-        int dayOfWeek = expenseDate.weekday - 1; // 0=Monday, 6=Sunday
+        int dayOfWeek = expenseDate.weekday - 1;
         
         double amount = (data['nominal'] as num).toDouble();
         expenses[dayOfWeek]['amount'] += amount;
@@ -247,14 +244,12 @@ class _HomeScreenState extends State<HomeScreen> {
         .collection('budgets')
         .get();
 
-    // Calculate total budget
     double totalMonthlyBudget = 0;
     for (var budgetDoc in budgetsSnapshot.docs) {
       var budgetData = budgetDoc.data();
       totalMonthlyBudget += (budgetData['rata_rata'] as num).toDouble();
     }
 
-    // Calculate total expenses by category
     Map<String, double> currentExpensesByCategory = {};
     for (var doc in expenseSnapshot.docs) {
       var data = doc.data();
@@ -265,7 +260,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     List<Map<String, dynamic>> comparisons = [];
 
-    // Add total budget comparison first
     if (totalMonthlyBudget > 0) {
       double totalPercentage = (totalExpense / totalMonthlyBudget) * 100;
       comparisons.add({
@@ -279,7 +273,6 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     }
 
-    // Add individual category comparisons
     for (var budgetDoc in budgetsSnapshot.docs) {
       var budgetData = budgetDoc.data();
       var category = budgetData['kategori'] as String;
@@ -526,7 +519,6 @@ class _HomeScreenState extends State<HomeScreen> {
               double sisaUang = (reportData['sisaUang'] as num?)?.toDouble() ?? 0;
               double pemasukan = (reportData['pemasukan'] as num?)?.toDouble() ?? 0;
               
-              // Calculate total for percentage calculation
               double total = pemasukan + pengeluaran + sisaUang;
               
               return Column(
@@ -546,10 +538,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 10, 
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  height: 1.2,  // Line height
+                                  height: 1.2,
                                 ),
                                 radius: 60,
-                                titlePositionPercentageOffset: 0.55,  // Adjust vertical position
+                                titlePositionPercentageOffset: 0.55,
                               ),
                               PieChartSectionData(
                                 value: pengeluaran,
@@ -559,10 +551,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontSize: 10, 
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  height: 1.2,  // Line height
+                                  height: 1.2,
                                 ),
                                 radius: 60,
-                                titlePositionPercentageOffset: 0.55,  // Adjust vertical position
+                                titlePositionPercentageOffset: 0.55,
                               ),
                             ],
                             centerSpaceRadius: 27,
@@ -789,47 +781,88 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Pengeluaran',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  'Rp${NumberFormat('#,###').format(spent)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pengeluaran',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  Text(
+                    'Rp${NumberFormat('#,###').format(spent)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text(
-                  'Budget',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  'Rp${NumberFormat('#,###').format(budget)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Budget',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  Text(
+                    'Rp${NumberFormat('#,###').format(budget)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percentage > 100 ? 1 : percentage / 100,
-            minHeight: 8,
-            backgroundColor: percentage > 100 ? Colors.red.withOpacity(0.2) : statusColor.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation(
-              percentage > 100 ? Colors.red : statusColor,
-            ),
+        Container(
+          height: 8,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            color: Colors.grey[200],
           ),
+          child: Stack(
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  double widthFactor = percentage > 100 ? 1.0 : percentage / 100;
+                  return FractionallySizedBox(
+                    widthFactor: widthFactor,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: statusColor,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              if (percentage > 100)
+                Positioned(
+                  right: 0,
+                  child: Container(
+                    width: 2,
+                    height: 8,
+                    color: Colors.white,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '0%',
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            ),
+            Text(
+              '100%',
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            ),
+          ],
         ),
       ],
     );

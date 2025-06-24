@@ -45,10 +45,11 @@ class _ChecklistPageState extends State<ChecklistPage> {
   Future<void> _handleChecklistTap(DocumentSnapshot doc) async {
     final now = DateTime.now();
     final tgl = _parseDate(doc['tanggalMenabung']);
-    final isToday = tgl.year == now.year && tgl.month == now.month && tgl.day == now.day;
+    final isPastOrToday = tgl.isBefore(now) || 
+                         (tgl.year == now.year && tgl.month == now.month && tgl.day == now.day);
     final isChecked = doc['status'] ?? false;
 
-    if (!isChecked && isToday) {
+    if (!isChecked && isPastOrToday) {
       final tabunganData = await _tabunganData;
       final mulai = _parseDate(tabunganData['mulaiMenabung']);
       final selesai = _parseDate(tabunganData['selesaiMenabung']);
@@ -127,6 +128,7 @@ class _ChecklistPageState extends State<ChecklistPage> {
               }
 
               final docs = snapshot.data!.docs;
+              final now = DateTime.now();
 
               if (docs.isEmpty) {
                 return const Center(
@@ -142,6 +144,10 @@ class _ChecklistPageState extends State<ChecklistPage> {
                   final tanggal = _parseDate(doc['tanggalMenabung']);
                   final status = doc['status'] ?? false;
                   final nominal = (doc['nominal'] as num?)?.toInt() ?? nominalPerHari;
+                  final isPastOrToday = tanggal.isBefore(now) || 
+                                      (tanggal.year == now.year && 
+                                       tanggal.month == now.month && 
+                                       tanggal.day == now.day);
 
                   return Card(
                     shape: RoundedRectangleBorder(
@@ -167,10 +173,12 @@ class _ChecklistPageState extends State<ChecklistPage> {
                       ),
                       trailing: status
                           ? const Icon(Icons.lock, color: Colors.grey)
-                          : IconButton(
-                              icon: const Icon(Icons.check, color: Colors.teal),
-                              onPressed: () => _handleChecklistTap(doc),
-                            ),
+                          : isPastOrToday
+                              ? IconButton(
+                                  icon: const Icon(Icons.check, color: Colors.teal),
+                                  onPressed: () => _handleChecklistTap(doc),
+                                )
+                              : const Icon(Icons.lock_outline, color: Colors.grey),
                     ),
                   );
                 },
