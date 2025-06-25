@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'BillsPage.dart'; // Import Firebase Auth
+import 'package:intl/intl.dart';
+import 'BillsPage.dart';
 
 class BillSettingsPage extends StatefulWidget {
   final String categoryTitle;
@@ -20,10 +21,8 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
   final List<String> frequencies = ['Harian', 'Mingguan', 'Bulanan', 'Tahunan'];
 
   Future<void> _saveBillToFirestore() async {
-    // Get current user
     User? user = FirebaseAuth.instance.currentUser;
-    
-    // Check if user is logged in
+
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Anda harus login terlebih dahulu')),
@@ -31,8 +30,9 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
       return;
     }
 
-    // Validate form fields
-    if (selectedDate == null || _amountController.text.isEmpty || selectedFrequency == null) {
+    if (selectedDate == null ||
+        _amountController.text.isEmpty ||
+        selectedFrequency == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Semua kolom harus diisi')),
       );
@@ -40,7 +40,6 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
     }
 
     try {
-      // Save to Firestore with user ID
       await FirebaseFirestore.instance.collection('bills').add({
         'due_date': selectedDate,
         'amount': _amountController.text,
@@ -48,10 +47,11 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
         'title': widget.categoryTitle,
         'icon_code': widget.categoryIcon.codePoint,
         'icon_font_family': widget.categoryIcon.fontFamily,
-        'description': 'Repeat $selectedFrequency sampai tanggal ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+        'description':
+            'Repeat $selectedFrequency sampai tanggal ${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
         'color': Colors.blue.value,
         'created_at': FieldValue.serverTimestamp(),
-        'uid': user.uid, // Add user ID to the document
+        'uid': user.uid,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,12 +59,11 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
       );
 
       Navigator.pushAndRemoveUntil(
-  context,
-  MaterialPageRoute(builder: (context) => BillsPage()),
-  (route) => false, // Ini akan menghapus semua halaman sebelumnya
-);
+        context,
+        MaterialPageRoute(builder: (context) => BillsPage()),
+        (route) => false,
+      );
     } catch (e) {
-      print('Error saving to Firestore: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan tagihan: ${e.toString()}')),
       );
@@ -74,115 +73,167 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Atur ${widget.categoryTitle}'),
-        backgroundColor: Colors.white,
+        title: Text(
+          'Atur ${widget.categoryTitle}',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.blue,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    child: Icon(widget.categoryIcon, color: Colors.blue, size: 30),
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.categoryIcon,
+                      size: 32,
+                      color: Colors.blue,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(widget.categoryTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 12),
+                  Text(
+                    widget.categoryTitle,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ],
               ),
             ),
+            SizedBox(height: 24),
+
+            // Date Picker
+            _buildSection(
+              title: 'Kapan tenggat waktu?',
+              child: GestureDetector(
+                onTap: () async {
+                  DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      selectedDate = picked;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        selectedDate == null
+                            ? 'Pilih tanggal'
+                            : DateFormat('dd/MM/yyyy').format(selectedDate!),
+                        style: TextStyle(fontSize: 16),
+                      ),
+                      Icon(Icons.calendar_today, color: Colors.blue),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             SizedBox(height: 20),
 
-            Text('Kapan tenggat waktu?', style: TextStyle(fontWeight: FontWeight.bold)),
-            GestureDetector(
-              onTap: () async {
-                DateTime? picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) {
-                  setState(() {
-                    selectedDate = picked;
-                  });
-                }
-              },
+            // Amount Input
+            _buildSection(
+              title: 'Berapa besar nominalnya?',
+              child: TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  prefixText: 'Rp ',
+                  hintText: 'Masukkan nominal',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Frequency Dropdown
+            _buildSection(
+              title: 'Berapa frekuensi pengulangannya?',
               child: Container(
-                padding: EdgeInsets.all(12),
-                margin: EdgeInsets.only(top: 8),
+                padding: EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      selectedDate == null
-                          ? 'Pilih tanggal'
-                          : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-                    ),
-                    Icon(Icons.calendar_today, color: Colors.blue),
-                  ],
+                child: DropdownButton<String>(
+                  value: selectedFrequency,
+                  isExpanded: true,
+                  underline: SizedBox(),
+                  hint: Text('Pilih opsi pengulangan'),
+                  items: frequencies.map((String frequency) {
+                    return DropdownMenuItem<String>(
+                      value: frequency,
+                      child: Text(frequency),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedFrequency = newValue;
+                    });
+                  },
                 ),
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 30),
 
-            Text('Berapa besar nominalnya?', style: TextStyle(fontWeight: FontWeight.bold)),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                prefixText: 'Rp ',
-                hintText: 'Masukkan nominal',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            SizedBox(height: 20),
-
-            Text('Berapa frekuensi pengulangannya?', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              value: selectedFrequency,
-              hint: Text('Pilih opsi pengulangan'),
-              items: frequencies.map((String frequency) {
-                return DropdownMenuItem<String>(
-                  value: frequency,
-                  child: Text(frequency),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedFrequency = newValue;
-                });
-              },
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            SizedBox(height: 20),
-
-            GestureDetector(
-              onTap: _saveBillToFirestore,
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 15),
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(8),
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _saveBillToFirestore,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
                 ),
-                child: Center(
-                  child: Text(
-                    'TAMBAH TAGIHAN',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: Text(
+                  'TAMBAH TAGIHAN',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),
@@ -190,6 +241,24 @@ class _BillSettingsPageState extends State<BillSettingsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }

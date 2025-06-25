@@ -15,7 +15,8 @@ class SplashScreen6 extends StatelessWidget {
           Expanded(
             flex: 2, // Menjaga tinggi gambar roket tetap proporsional
             child: Center(
-              child: Image.asset('assets/rocket.png',
+              child: Image.asset(
+                'assets/rocket.png',
                 width: 200,
               ),
             ),
@@ -26,7 +27,9 @@ class SplashScreen6 extends StatelessWidget {
               clipper: WaveClipper(),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // Menyesuaikan tinggi dengan padding
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 10), // Menyesuaikan tinggi dengan padding
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.purple, Colors.lightBlueAccent],
@@ -55,7 +58,9 @@ class SplashScreen6 extends StatelessWidget {
                         onPressed: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()), // Pastikan MainPage() ada di main.dart
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const LoginPage()), // Pastikan MainPage() ada di main.dart
                           );
                         },
                         child: const Text(
@@ -82,7 +87,8 @@ class SplashScreen6 extends StatelessWidget {
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const SignUpPage()),
+                            MaterialPageRoute(
+                                builder: (context) => const SignUpPage()),
                           );
                         },
                         child: const Text(
@@ -111,11 +117,14 @@ class WaveClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     Path path = Path();
-    path.lineTo(0, size.height * 0.15); // Turunkan sedikit posisi awal gelombang
+    path.lineTo(
+        0, size.height * 0.15); // Turunkan sedikit posisi awal gelombang
 
     // Sesuaikan titik kontrol agar gelombang lebih natural
-    path.quadraticBezierTo(size.width / 4, size.height * 0.08, size.width / 2, size.height * 0.15);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height * 0.25, size.width, size.height * 0.15);
+    path.quadraticBezierTo(
+        size.width / 4, size.height * 0.08, size.width / 2, size.height * 0.15);
+    path.quadraticBezierTo(
+        size.width * 3 / 4, size.height * 0.25, size.width, size.height * 0.15);
 
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);

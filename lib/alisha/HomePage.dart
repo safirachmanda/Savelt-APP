@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-  
+
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -39,16 +39,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
-  double totalIncome = 0;
-  double totalExpense = 0;
-  double totalSavings = 0;
-  double reportIncome = 0;
+
+  double totalIncome = 0.0;
+  double totalExpense = 0.0;
+  double totalSavings = 0.0;
+  double reportIncome = 0.0;
   List<Map<String, dynamic>> reminders = [];
-  List<Map<String, dynamic>> weeklyExpenses = List.generate(7, (index) => {'amount': 0});
+  List<Map<String, dynamic>> weeklyExpenses =
+      List.generate(7, (index) => {'amount': 0.0});
   List<Map<String, dynamic>> budgets = [];
   List<Map<String, dynamic>> budgetComparisons = [];
-  double totalBudget = 0;
+  double totalBudget = 0.0;
 
   @override
   void initState() {
@@ -65,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    
+
     final startDate = DateFormat('yyyy-MM-dd').format(firstDayOfMonth);
     final endDate = DateFormat('yyyy-MM-dd').format(lastDayOfMonth);
 
@@ -76,8 +77,8 @@ class _HomeScreenState extends State<HomeScreen> {
         .where('tanggal', isGreaterThanOrEqualTo: startDate)
         .where('tanggal', isLessThanOrEqualTo: endDate)
         .get();
-    
-    double income = incomeSnapshot.docs.fold(0, (sum, doc) {
+
+    double income = incomeSnapshot.docs.fold(0.0, (sum, doc) {
       return sum + (doc.data()['nominal'] as num).toDouble();
     });
 
@@ -88,8 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
         .where('tanggal', isGreaterThanOrEqualTo: startDate)
         .where('tanggal', isLessThanOrEqualTo: endDate)
         .get();
-    
-    double expense = expenseSnapshot.docs.fold(0, (sum, doc) {
+
+    double expense = expenseSnapshot.docs.fold(0.0, (sum, doc) {
       return sum + (doc.data()['nominal'] as num).toDouble();
     });
 
@@ -102,10 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchReportIncome() async {
     try {
-      DocumentSnapshot reportSnapshot = await _firestore
-          .collection('reports')
-          .doc(uid)
-          .get();
+      DocumentSnapshot reportSnapshot =
+          await _firestore.collection('reports').doc(uid).get();
 
       if (reportSnapshot.exists) {
         var data = reportSnapshot.data() as Map<String, dynamic>;
@@ -121,37 +120,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchReminders() async {
+    // Debug: Initial log
+    debugPrint('[Reminders] Starting to fetch reminders...');
+
+    // Validation checks
+    if (uid == null || uid.isEmpty) {
+      debugPrint('[Reminders][ERROR] UID is null or empty');
+      setState(() {
+        reminders = [];
+      });
+      return;
+    }
+
+    if (_firestore == null) {
+      debugPrint('[Reminders][ERROR] Firestore instance is not initialized');
+      setState(() {
+        reminders = [];
+      });
+      return;
+    }
+
     try {
-      DateTime now = DateTime.now();
-      DateTime nextWeek = now.add(const Duration(days: 7));
-      
-      var billsSnapshot = await _firestore
-          .collection('bills')
-          .where('uid', isEqualTo: uid)  // Filter by current user's UID
-          .where('due_date', isGreaterThanOrEqualTo: now)
-          .where('due_date', isLessThanOrEqualTo: nextWeek)
-          .orderBy('due_date')
-          .limit(3)
-          .get();
-      
-      List<Map<String, dynamic>> billReminders = billsSnapshot.docs.map((doc) {
-        var data = doc.data();
-        DateTime dueDate = (data['due_date'] as Timestamp).toDate();
-        int daysLeft = dueDate.difference(now).inDays;
-        
-        return {
-          'title': data['title'] ?? 'Tagihan Tanpa Nama',
-          'subtitle': 'Jatuh Tempo: ${DateFormat('dd/MM/yyyy').format(dueDate)} (${daysLeft} hari lagi)',
-          'amount': '-Rp${NumberFormat('#,###').format(int.parse(data['amount']))}',
-          'color': daysLeft <= 3 ? Colors.red : Colors.orange,
-        };
-      }).toList();
+      // Date setup
+      final now = DateTime.now();
+      final nextWeek = now.add(const Duration(days: 7));
+
+      debugPrint(
+          '[Reminders] Date range: ${DateFormat('yyyy-MM-dd HH:mm').format(now)} to ${DateFormat('yyyy-MM-dd HH:mm').format(nextWeek)}');
+
+      // Firestore query
+      final QuerySnapshot billsSnapshot;
+      try {
+        billsSnapshot = await _firestore
+            .collection('bills')
+            .where('uid', isEqualTo: uid)
+            .where('due_date', isGreaterThanOrEqualTo: now)
+            .where('due_date', isLessThanOrEqualTo: nextWeek)
+            .orderBy('due_date')
+            .limit(3)
+            .get();
+
+        debugPrint(
+            '[Reminders] Found ${billsSnapshot.docs.length} upcoming bills');
+      } on FirebaseException catch (e) {
+        debugPrint('[Reminders][FIREBASE ERROR] ${e.code}: ${e.message}');
+        setState(() {
+          reminders = [];
+        });
+        return;
+      }
+
+      // Process documents
+      final List<Map<String, dynamic>> billReminders = [];
+
+      for (final doc in billsSnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+
+          // Validate required fields
+          if (data['due_date'] == null) {
+            debugPrint(
+                '[Reminders][WARNING] Document ${doc.id} missing due_date');
+            continue;
+          }
+
+          // Parse dates
+          final Timestamp dueTimestamp = data['due_date'] as Timestamp;
+          final dueDate = dueTimestamp.toDate();
+          final daysLeft = dueDate.difference(now).inDays;
+
+          // Format amount
+          String amountString = '-Rp0';
+          try {
+            if (data['amount'] != null) {
+              final amount = int.parse(data['amount'].toString());
+              amountString = '-Rp${NumberFormat('#,###').format(amount)}';
+            }
+          } catch (e) {
+            debugPrint(
+                '[Reminders][WARNING] Invalid amount format in document ${doc.id}');
+          }
+
+          // Build reminder item
+          billReminders.add({
+            'title': data['title']?.toString() ?? 'Tagihan Tanpa Nama',
+            'subtitle':
+                'Jatuh Tempo: ${DateFormat('dd/MM/yyyy').format(dueDate)} (${daysLeft} hari lagi)',
+            'amount': amountString,
+            'color': daysLeft <= 3 ? Colors.red : Colors.orange,
+            'document_id': doc.id, // Useful for future reference
+          });
+        } catch (e) {
+          debugPrint('[Reminders][ERROR] Processing document ${doc.id}: $e');
+        }
+      }
+
+      debugPrint(
+          '[Reminders] Successfully processed ${billReminders.length} reminders');
 
       setState(() {
         reminders = billReminders;
       });
     } catch (e) {
-      print('Error fetching reminders: $e');
+      debugPrint('[Reminders][CRITICAL ERROR] $e');
+      debugPrint(e.toString());
       setState(() {
         reminders = [];
       });
@@ -168,19 +240,24 @@ class _HomeScreenState extends State<HomeScreen> {
           .collection('reports')
           .doc(uid)
           .collection('pengeluaran')
-          .where('tanggal', isGreaterThanOrEqualTo: DateFormat('yyyy-MM-dd').format(startOfWeek))
-          .where('tanggal', isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(endOfWeek))
+          .where('tanggal',
+              isGreaterThanOrEqualTo:
+                  DateFormat('yyyy-MM-dd').format(startOfWeek))
+          .where('tanggal',
+              isLessThanOrEqualTo: DateFormat('yyyy-MM-dd').format(endOfWeek))
           .get();
 
-      List<Map<String, dynamic>> expenses = List.generate(7, (index) => {'amount': 0});
+      List<Map<String, dynamic>> expenses =
+          List.generate(7, (index) => {'amount': 0.0});
 
       for (var doc in expenseSnapshot.docs) {
         var data = doc.data();
         DateTime expenseDate = DateFormat('yyyy-MM-dd').parse(data['tanggal']);
         int dayOfWeek = expenseDate.weekday - 1;
-        
+
         double amount = (data['nominal'] as num).toDouble();
-        expenses[dayOfWeek]['amount'] += amount;
+        expenses[dayOfWeek]['amount'] =
+            (expenses[dayOfWeek]['amount'] as double) + amount;
       }
 
       setState(() {
@@ -189,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print('Error fetching weekly expenses: $e');
       setState(() {
-        weeklyExpenses = List.generate(7, (index) => {'amount': 0});
+        weeklyExpenses = List.generate(7, (index) => {'amount': 0.0});
       });
     }
   }
@@ -200,18 +277,18 @@ class _HomeScreenState extends State<HomeScreen> {
         .doc(uid)
         .collection('budgets')
         .get();
-    
+
     List<Map<String, dynamic>> budgetList = [];
-    double sumBudgets = 0;
-    
+    double sumBudgets = 0.0;
+
     for (var doc in budgetsSnapshot.docs) {
       var data = doc.data();
-      if (data['rata_rata'] > 0) {
+      if ((data['rata_rata'] as num).toDouble() > 0.0) {
         sumBudgets += (data['rata_rata'] as num).toDouble();
         budgetList.add({
           'title': data['kategori'],
           'icon': _getCategoryIcon(data['kategori']),
-          'budgetLimit': data['rata_rata'].toDouble(),
+          'budgetLimit': (data['rata_rata'] as num).toDouble(),
         });
       }
     }
@@ -226,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
-    
+
     final startDate = DateFormat('yyyy-MM-dd').format(firstDayOfMonth);
     final endDate = DateFormat('yyyy-MM-dd').format(lastDayOfMonth);
 
@@ -244,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .collection('budgets')
         .get();
 
-    double totalMonthlyBudget = 0;
+    double totalMonthlyBudget = 0.0;
     for (var budgetDoc in budgetsSnapshot.docs) {
       var budgetData = budgetDoc.data();
       totalMonthlyBudget += (budgetData['rata_rata'] as num).toDouble();
@@ -255,12 +332,13 @@ class _HomeScreenState extends State<HomeScreen> {
       var data = doc.data();
       var category = data['kategori'] as String;
       var amount = (data['nominal'] as num).toDouble();
-      currentExpensesByCategory[category] = (currentExpensesByCategory[category] ?? 0) + amount;
+      currentExpensesByCategory[category] =
+          (currentExpensesByCategory[category] ?? 0.0) + amount;
     }
 
     List<Map<String, dynamic>> comparisons = [];
 
-    if (totalMonthlyBudget > 0) {
+    if (totalMonthlyBudget > 0.0) {
       double totalPercentage = (totalExpense / totalMonthlyBudget) * 100;
       comparisons.add({
         'category': 'Total Budget',
@@ -277,8 +355,9 @@ class _HomeScreenState extends State<HomeScreen> {
       var budgetData = budgetDoc.data();
       var category = budgetData['kategori'] as String;
       var monthlyBudget = (budgetData['rata_rata'] as num).toDouble();
-      var currentSpending = currentExpensesByCategory[category] ?? 0;
-      var percentage = monthlyBudget > 0 ? (currentSpending / monthlyBudget) * 100 : 0;
+      var currentSpending = currentExpensesByCategory[category] ?? 0.0;
+      var percentage =
+          monthlyBudget > 0.0 ? (currentSpending / monthlyBudget) * 100 : 0.0;
 
       comparisons.add({
         'category': category,
@@ -297,14 +376,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getBudgetStatus(double spent, double budget) {
-    if (budget == 0) return 'No Budget Set';
+    if (budget == 0.0) return 'No Budget Set';
     if (spent > budget) return 'Melebihi Budget';
     if (spent > budget * 0.8) return 'Mendekati Limit';
     return 'Dalam Budget';
   }
 
   Color _getBudgetStatusColor(double spent, double budget) {
-    if (budget == 0) return Colors.grey;
+    if (budget == 0.0) return Colors.grey;
     if (spent > budget) return Colors.red;
     if (spent > budget * 0.8) return Colors.orange;
     return Colors.green;
@@ -332,7 +411,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     double totalValue = totalIncome + totalExpense + reportIncome;
-    
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -340,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         title: Row(
           children: [
-            Image.asset('savelt.png', height: 40),
+            Image.asset('assets/savelt.png', height: 40),
             const SizedBox(width: 5),
             Text.rich(
               TextSpan(
@@ -376,24 +455,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.pushNamed(context, '/home');
                   break;
                 case 'Tagihan':
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => BillsPage()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => BillsPage()));
                   break;
                 case 'Laporan Keuangan':
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => ReportsPage()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => ReportsPage()));
                   break;
                 case 'Target Tabungan':
-                  Navigator.pushNamed(context, '/targettabungan');
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => TargetPage()));
                   break;
                 case 'Profile':
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => AccountPage()));
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (context) => AccountPage()));
                   break;
               }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'Home', child: Text('Home')),
               const PopupMenuItem(value: 'Tagihan', child: Text('Tagihan')),
-              const PopupMenuItem(value: 'Laporan Keuangan', child: Text('Laporan Keuangan')),
-              const PopupMenuItem(value: 'Target Tabungan', child: Text('Target Tabungan')),
+              const PopupMenuItem(
+                  value: 'Laporan Keuangan', child: Text('Laporan Keuangan')),
+              const PopupMenuItem(
+                  value: 'Target Tabungan', child: Text('Target Tabungan')),
               const PopupMenuItem(value: 'Profile', child: Text('Profile')),
             ],
           )
@@ -437,12 +522,14 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           else
             Column(
-              children: reminders.map((reminder) => _buildReminderItem(
-                title: reminder['title'],
-                subtitle: reminder['subtitle'],
-                amount: reminder['amount'],
-                color: reminder['color'],
-              )).toList(),
+              children: reminders
+                  .map((reminder) => _buildReminderItem(
+                        title: reminder['title'],
+                        subtitle: reminder['subtitle'],
+                        amount: reminder['amount'],
+                        color: reminder['color'],
+                      ))
+                  .toList(),
             ),
         ],
       ),
@@ -472,11 +559,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
                     amount,
-                    style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -502,25 +593,28 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
           FutureBuilder<DocumentSnapshot>(
             future: _firestore.collection('reports').doc(uid).get(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              
+
               if (!snapshot.hasData || !snapshot.data!.exists) {
                 return const Center(child: Text('Tidak ada data laporan'));
               }
-              
+
               var reportData = snapshot.data!.data() as Map<String, dynamic>;
-              double pengeluaran = (reportData['pengeluaran'] as num?)?.toDouble() ?? 0;
-              double sisaUang = (reportData['sisaUang'] as num?)?.toDouble() ?? 0;
-              double pemasukan = (reportData['pemasukan'] as num?)?.toDouble() ?? 0;
-              
+              double pengeluaran =
+                  (reportData['pengeluaran'] as num?)?.toDouble() ?? 0.0;
+              double sisaUang =
+                  (reportData['sisaUang'] as num?)?.toDouble() ?? 0.0;
+              double pemasukan =
+                  (reportData['pemasukan'] as num?)?.toDouble() ?? 0.0;
+
               double total = pemasukan + pengeluaran + sisaUang;
-              
+
               return Column(
                 children: [
                   SizedBox(
@@ -533,9 +627,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               PieChartSectionData(
                                 value: pemasukan,
                                 color: Colors.green,
-                                title: 'Pemasukan\n${total > 0 ? (pemasukan / total * 100).toStringAsFixed(1) : 0}%',
+                                title:
+                                    'Pemasukan\n${total > 0.0 ? (pemasukan / total * 100).toStringAsFixed(1) : 0}%',
                                 titleStyle: const TextStyle(
-                                  fontSize: 10, 
+                                  fontSize: 10,
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   height: 1.2,
@@ -546,9 +641,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               PieChartSectionData(
                                 value: pengeluaran,
                                 color: Colors.red,
-                                title: 'Pengeluaran\n${total > 0 ? (pengeluaran / total * 100).toStringAsFixed(1) : 0}%',
+                                title:
+                                    'Pengeluaran\n${total > 0.0 ? (pengeluaran / total * 100).toStringAsFixed(1) : 0}%',
                                 titleStyle: const TextStyle(
-                                  fontSize: 10, 
+                                  fontSize: 10,
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                   height: 1.2,
@@ -567,9 +663,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16),
                   Column(
                     children: [
-                      _buildSummaryText('Pemasukan', '+Rp${NumberFormat('#,###').format(pemasukan)}', Colors.green),
-                      _buildSummaryText('Pengeluaran', '-Rp${NumberFormat('#,###').format(pengeluaran)}', Colors.red),
-                      _buildSummaryText('Sisa Uang', 'Rp${NumberFormat('#,###').format(sisaUang)}', Colors.blue),
+                      _buildSummaryText(
+                          'Pemasukan',
+                          '+Rp${NumberFormat('#,###').format(pemasukan.toInt())}',
+                          Colors.green),
+                      _buildSummaryText(
+                          'Pengeluaran',
+                          '-Rp${NumberFormat('#,###').format(pengeluaran.toInt())}',
+                          Colors.red),
+                      _buildSummaryText(
+                          'Sisa Uang',
+                          'Rp${NumberFormat('#,###').format(sisaUang.toInt())}',
+                          Colors.blue),
                     ],
                   ),
                 ],
@@ -587,7 +692,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(title,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           Text(amount, style: TextStyle(color: color, fontSize: 16)),
         ],
       ),
@@ -613,17 +720,29 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderData: FlBorderData(show: false),
                 gridData: FlGridData(show: false),
                 titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
-                        const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+                        const days = [
+                          'Sen',
+                          'Sel',
+                          'Rab',
+                          'Kam',
+                          'Jum',
+                          'Sab',
+                          'Min'
+                        ];
                         return Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text(days[value.toInt()], style: const TextStyle(fontSize: 12)),
+                          child: Text(days[value.toInt()],
+                              style: const TextStyle(fontSize: 12)),
                         );
                       },
                       reservedSize: 22,
@@ -635,7 +754,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     x: index,
                     barRods: [
                       BarChartRodData(
-                        toY: weeklyExpenses[index]['amount'].toDouble(),
+                        toY:
+                            (weeklyExpenses[index]['amount'] as num).toDouble(),
                         color: Colors.red,
                         width: 50,
                         borderRadius: BorderRadius.circular(8),
@@ -671,12 +791,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             if (budgetComparisons.isEmpty)
-              const Center(child: Text('Tidak ada data budget', style: TextStyle(color: Colors.grey)))
+              const Center(
+                  child: Text('Tidak ada data budget',
+                      style: TextStyle(color: Colors.grey)))
             else
               Column(
                 children: [
-                  // Total Budget Comparison
-                  if (totalBudget > 0)
+                  if (totalBudget > 0.0)
                     Column(
                       children: [
                         _buildBudgetComparisonItem(
@@ -686,34 +807,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           spent: totalExpense,
                           percentage: (totalExpense / totalBudget) * 100,
                           status: _getBudgetStatus(totalExpense, totalBudget),
-                          statusColor: _getBudgetStatusColor(totalExpense, totalBudget),
+                          statusColor:
+                              _getBudgetStatusColor(totalExpense, totalBudget),
                         ),
                         const SizedBox(height: 16),
                         const Divider(),
                         const SizedBox(height: 16),
                         const Text(
                           'Per Kategori:',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                       ],
                     ),
-                  
-                  // Category Budgets
-                  ...budgetComparisons.where((item) => item['category'] != 'Total Budget').map((comparison) => Column(
-                    children: [
-                      _buildBudgetComparisonItem(
-                        category: comparison['category'],
-                        icon: comparison['icon'],
-                        budget: comparison['budget'],
-                        spent: comparison['spent'],
-                        percentage: comparison['percentage'],
-                        status: comparison['status'],
-                        statusColor: comparison['statusColor'],
-                      ),
-                      if (comparison != budgetComparisons.last) const SizedBox(height: 16),
-                    ],
-                  )).toList(),
+                  ...budgetComparisons
+                      .where((item) => item['category'] != 'Total Budget')
+                      .map((comparison) => Column(
+                            children: [
+                              _buildBudgetComparisonItem(
+                                category: comparison['category'],
+                                icon: comparison['icon'],
+                                budget: comparison['budget'],
+                                spent: comparison['spent'],
+                                percentage: comparison['percentage'],
+                                status: comparison['status'],
+                                statusColor: comparison['statusColor'],
+                              ),
+                              if (comparison != budgetComparisons.last)
+                                const SizedBox(height: 16),
+                            ],
+                          ))
+                      .toList(),
                 ],
               ),
           ],
@@ -748,7 +873,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     category,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   Text(
                     status,
@@ -769,7 +895,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 Text(
-                  'Rp${NumberFormat('#,###').format(spent)} / Rp${NumberFormat('#,###').format(budget)}',
+                  'Rp${NumberFormat('#,###').format(spent.toInt())} / Rp${NumberFormat('#,###').format(budget.toInt())}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -791,7 +917,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   Text(
-                    'Rp${NumberFormat('#,###').format(spent)}',
+                    'Rp${NumberFormat('#,###').format(spent.toInt())}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -807,7 +933,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   Text(
-                    'Rp${NumberFormat('#,###').format(budget)}',
+                    'Rp${NumberFormat('#,###').format(budget.toInt())}',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -826,7 +952,8 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               LayoutBuilder(
                 builder: (context, constraints) {
-                  double widthFactor = percentage > 100 ? 1.0 : percentage / 100;
+                  double widthFactor =
+                      percentage > 100.0 ? 1.0 : percentage / 100.0;
                   return FractionallySizedBox(
                     widthFactor: widthFactor,
                     child: Container(
@@ -838,7 +965,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-              if (percentage > 100)
+              if (percentage > 100.0)
                 Positioned(
                   right: 0,
                   child: Container(
@@ -910,8 +1037,10 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
-        BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money), label: 'Tagihan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.insert_chart), label: 'Laporan'),
         BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],

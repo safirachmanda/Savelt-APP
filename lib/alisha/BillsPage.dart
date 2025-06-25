@@ -73,7 +73,8 @@ class _BillsPageState extends State<BillsPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Tagihan Anda', style: TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            Text('Tagihan Anda', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
@@ -94,15 +95,17 @@ class _BillsPageState extends State<BillsPage> {
               child: StreamBuilder<QuerySnapshot>(
                 stream: _getBillsStream(),
                 builder: (context, snapshot) {
-                  _addDebugLog('StreamBuilder state: ${snapshot.connectionState}');
-                  
+                  _addDebugLog(
+                      'StreamBuilder state: ${snapshot.connectionState}');
+
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     _addDebugLog('Waiting for bills data');
                     return Center(child: CircularProgressIndicator());
                   }
 
                   if (snapshot.hasError) {
-                    _addDebugLog('Error in bills stream: ${snapshot.error}', isError: true);
+                    _addDebugLog('Error in bills stream: ${snapshot.error}',
+                        isError: true);
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -128,14 +131,17 @@ class _BillsPageState extends State<BillsPage> {
                   return ListView(
                     children: snapshot.data!.docs.map((doc) {
                       final data = doc.data() as Map<String, dynamic>;
-                      _addDebugLog('Processing bill: ${doc.id} - ${data['title']}');
+                      _addDebugLog(
+                          'Processing bill: ${doc.id} - ${data['title']}');
 
                       // Debug data validation
-                      if (data['icon_code'] == null || data['icon_font_family'] == null) {
-                        _addDebugLog('Missing icon data for bill ${doc.id}', isError: true);
+                      if (data['icon_code'] == null ||
+                          data['icon_font_family'] == null) {
+                        _addDebugLog('Missing icon data for bill ${doc.id}',
+                            isError: true);
                       }
 
-                      final icon = IconData(
+                      var icon = IconData(
                         data['icon_code'] ?? Icons.error.codePoint,
                         fontFamily: data['icon_font_family'] ?? 'MaterialIcons',
                       );
@@ -168,11 +174,13 @@ class _BillsPageState extends State<BillsPage> {
                 _addDebugLog('Navigating to CategorySelectionPage');
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => CategorySelectionPage()),
+                  MaterialPageRoute(
+                      builder: (context) => CategorySelectionPage()),
                 );
               },
               icon: Icon(Icons.add, color: Colors.white),
-              label: Text('Tambahkan Tagihan Lain', style: TextStyle(color: Colors.white)),
+              label: Text('Tambahkan Tagihan Lain',
+                  style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 minimumSize: Size(double.infinity, 50),
@@ -197,9 +205,11 @@ class _BillsPageState extends State<BillsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('User UID: ${_auth.currentUser?.uid ?? 'Not authenticated'}'),
+              Text(
+                  'User UID: ${_auth.currentUser?.uid ?? 'Not authenticated'}'),
               SizedBox(height: 10),
-              Text('Debug Logs:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Debug Logs:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 5),
               Container(
                 height: 300,
@@ -209,12 +219,15 @@ class _BillsPageState extends State<BillsPage> {
                 ),
                 padding: EdgeInsets.all(8),
                 child: ListView(
-                  children: _debugLogs.reversed.map((log) => 
-                    Text(log, style: TextStyle(
-                      fontSize: 12,
-                      color: log.contains('ERROR') ? Colors.red : Colors.black,
-                    ))
-                  ).toList(),
+                  children: _debugLogs.reversed
+                      .map((log) => Text(log,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: log.contains('ERROR')
+                                ? Colors.red
+                                : Colors.black,
+                          )))
+                      .toList(),
                 ),
               ),
             ],
@@ -269,12 +282,17 @@ class _BillsPageState extends State<BillsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(title,
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 4),
-                  Text(description, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text(description,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                   SizedBox(height: 4),
-                  Text('Jatuh tempo: $dueDate', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
-                  Text('Frekuensi: $frequency', style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                  Text('Jatuh tempo: $dueDate',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+                  Text('Frekuensi: $frequency',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700])),
                 ],
               ),
             ),
@@ -283,7 +301,10 @@ class _BillsPageState extends State<BillsPage> {
               children: [
                 Text(
                   amount,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -292,7 +313,8 @@ class _BillsPageState extends State<BillsPage> {
                       icon: Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
                         _addDebugLog('Editing bill: $docId');
-                        _showEditDialog(context, docId, rawAmount, description, dueDate, frequency);
+                        _showEditDialog(context, docId, rawAmount, description,
+                            dueDate, frequency);
                       },
                     ),
                     IconButton(
@@ -300,13 +322,17 @@ class _BillsPageState extends State<BillsPage> {
                       onPressed: () async {
                         _addDebugLog('Attempting to delete bill: $docId');
                         try {
-                          await _firestore.collection('bills').doc(docId).delete();
+                          await _firestore
+                              .collection('bills')
+                              .doc(docId)
+                              .delete();
                           _addDebugLog('Successfully deleted bill: $docId');
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Tagihan berhasil dihapus')),
                           );
                         } catch (e) {
-                          _addDebugLog('Error deleting bill: $e', isError: true);
+                          _addDebugLog('Error deleting bill: $e',
+                              isError: true);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Gagal menghapus tagihan')),
                           );
@@ -331,11 +357,15 @@ class _BillsPageState extends State<BillsPage> {
     String currentDueDate,
     String currentFrequency,
   ) {
-    final TextEditingController amountController = TextEditingController(text: currentAmount);
-    final TextEditingController descController = TextEditingController(text: currentDesc);
+    final TextEditingController amountController =
+        TextEditingController(text: currentAmount);
+    final TextEditingController descController =
+        TextEditingController(text: currentDesc);
 
     List<String> frequencies = ['Harian', 'Mingguan', 'Bulanan', 'Tahunan'];
-    String dropdownValue = frequencies.contains(currentFrequency) ? currentFrequency : frequencies[0];
+    String dropdownValue = frequencies.contains(currentFrequency)
+        ? currentFrequency
+        : frequencies[0];
 
     DateTime? selectedDate;
     if (currentDueDate.isNotEmpty && currentDueDate != '-') {
@@ -428,7 +458,8 @@ class _BillsPageState extends State<BillsPage> {
                 if (selectedDate == null) {
                   _addDebugLog('No due date selected', isError: true);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tanggal jatuh tempo harus dipilih')),
+                    SnackBar(
+                        content: Text('Tanggal jatuh tempo harus dipilih')),
                   );
                   return;
                 }
@@ -478,26 +509,32 @@ class _BillsPageState extends State<BillsPage> {
         _addDebugLog('Bottom nav bar tapped: $index');
         switch (index) {
           case 0:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomeScreen()));
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => HomeScreen()));
             break;
           case 1:
             // Halaman saat ini
             break;
           case 2:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ReportsPage()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => ReportsPage()));
             break;
           case 3:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => TargetPage()));
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => TargetPage()));
             break;
           case 4:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AccountPage()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => AccountPage()));
             break;
         }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
-        BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money), label: 'Tagihan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.insert_chart), label: 'Laporan'),
         BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],

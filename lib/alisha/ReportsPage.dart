@@ -22,7 +22,7 @@ class _ReportsPageState extends State<ReportsPage> {
   int _selectedIndex = 2;
   late User _currentUser;
   DateTime _selectedMonth = DateTime.now();
-  
+
   // Firestore references
   late CollectionReference _pemasukanCollection;
   late CollectionReference _pengeluaranCollection;
@@ -40,10 +40,9 @@ class _ReportsPageState extends State<ReportsPage> {
         .collection('reports')
         .doc(_currentUser.uid)
         .collection('pengeluaran');
-    _userReportDocRef = FirebaseFirestore.instance
-        .collection('reports')
-        .doc(_currentUser.uid);
-    
+    _userReportDocRef =
+        FirebaseFirestore.instance.collection('reports').doc(_currentUser.uid);
+
     // Initialize user document with UID if it doesn't exist
     _initializeUserDocument();
   }
@@ -58,17 +57,19 @@ class _ReportsPageState extends State<ReportsPage> {
   Future<Map<String, double>> _calculateMonthlyTotals() async {
     // Get first and last day of selected month
     DateTime firstDay = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    DateTime lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    DateTime lastDay =
+        DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
     // Calculate total income for the month
     final pemasukanSnapshot = await _pemasukanCollection
         .where('timestamp', isGreaterThanOrEqualTo: firstDay)
         .where('timestamp', isLessThanOrEqualTo: lastDay)
         .get();
-    
+
     double totalPemasukan = 0;
     for (var doc in pemasukanSnapshot.docs) {
-      totalPemasukan += (doc.data() as Map<String, dynamic>)['nominal']?.toDouble() ?? 0;
+      totalPemasukan +=
+          (doc.data() as Map<String, dynamic>)['nominal']?.toDouble() ?? 0;
     }
 
     // Calculate total expenses for the month
@@ -76,10 +77,11 @@ class _ReportsPageState extends State<ReportsPage> {
         .where('timestamp', isGreaterThanOrEqualTo: firstDay)
         .where('timestamp', isLessThanOrEqualTo: lastDay)
         .get();
-    
+
     double totalPengeluaran = 0;
     for (var doc in pengeluaranSnapshot.docs) {
-      totalPengeluaran += (doc.data() as Map<String, dynamic>)['nominal']?.toDouble() ?? 0;
+      totalPengeluaran +=
+          (doc.data() as Map<String, dynamic>)['nominal']?.toDouble() ?? 0;
     }
 
     // Calculate remaining money
@@ -161,7 +163,8 @@ class _ReportsPageState extends State<ReportsPage> {
   Future<Map<String, Map<String, double>>> _getCategoryData() async {
     // Get first and last day of selected month
     DateTime firstDay = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    DateTime lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    DateTime lastDay =
+        DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
     // Get income data by category
     final pemasukanSnapshot = await _pemasukanCollection
@@ -202,13 +205,16 @@ class _ReportsPageState extends State<ReportsPage> {
     return categoryData;
   }
 
-  Future<List<QueryDocumentSnapshot>> _getCategoryHistory(String type, String category) async {
+  Future<List<QueryDocumentSnapshot>> _getCategoryHistory(
+      String type, String category) async {
     // Get first and last day of selected month
     DateTime firstDay = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-    DateTime lastDay = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
+    DateTime lastDay =
+        DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
-    CollectionReference collection = type == 'pemasukan' ? _pemasukanCollection : _pengeluaranCollection;
-    
+    CollectionReference collection =
+        type == 'pemasukan' ? _pemasukanCollection : _pengeluaranCollection;
+
     final snapshot = await collection
         .where('timestamp', isGreaterThanOrEqualTo: firstDay)
         .where('timestamp', isLessThanOrEqualTo: lastDay)
@@ -227,7 +233,7 @@ class _ReportsPageState extends State<ReportsPage> {
       lastDate: DateTime.now(),
       initialDatePickerMode: DatePickerMode.year,
     );
-    
+
     if (picked != null && picked != _selectedMonth) {
       setState(() {
         _selectedMonth = DateTime(picked.year, picked.month, 1);
@@ -240,7 +246,8 @@ class _ReportsPageState extends State<ReportsPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Laporan Keuangan', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Laporan Keuangan',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_today),
@@ -255,11 +262,11 @@ class _ReportsPageState extends State<ReportsPage> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          
+
           double pemasukan = snapshot.data?['pemasukan'] ?? 0;
           double pengeluaran = snapshot.data?['pengeluaran'] ?? 0;
           double sisaUang = snapshot.data?['sisaUang'] ?? 0;
@@ -275,14 +282,16 @@ class _ReportsPageState extends State<ReportsPage> {
                 FutureBuilder<Map<String, Map<String, double>>>(
                   future: _getMonthlyData(),
                   builder: (context, monthlySnapshot) {
-                    if (monthlySnapshot.connectionState == ConnectionState.waiting) {
+                    if (monthlySnapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    
+
                     if (monthlySnapshot.hasError) {
-                      return Center(child: Text('Error: ${monthlySnapshot.error}'));
+                      return Center(
+                          child: Text('Error: ${monthlySnapshot.error}'));
                     }
-                    
+
                     return _buildBarChart(monthlySnapshot.data ?? {});
                   },
                 ),
@@ -292,14 +301,16 @@ class _ReportsPageState extends State<ReportsPage> {
                 FutureBuilder<Map<String, Map<String, double>>>(
                   future: _getCategoryData(),
                   builder: (context, categorySnapshot) {
-                    if (categorySnapshot.connectionState == ConnectionState.waiting) {
+                    if (categorySnapshot.connectionState ==
+                        ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-                    
+
                     if (categorySnapshot.hasError) {
-                      return Center(child: Text('Error: ${categorySnapshot.error}'));
+                      return Center(
+                          child: Text('Error: ${categorySnapshot.error}'));
                     }
-                    
+
                     return _buildCategoryLists(categorySnapshot.data ?? {});
                   },
                 ),
@@ -320,7 +331,8 @@ class _ReportsPageState extends State<ReportsPage> {
           icon: const Icon(Icons.chevron_left),
           onPressed: () {
             setState(() {
-              _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
+              _selectedMonth =
+                  DateTime(_selectedMonth.year, _selectedMonth.month - 1, 1);
             });
           },
         ),
@@ -330,10 +342,12 @@ class _ReportsPageState extends State<ReportsPage> {
         ),
         IconButton(
           icon: const Icon(Icons.chevron_right),
-          onPressed: _selectedMonth.isBefore(DateTime(DateTime.now().year, DateTime.now().month, 1))
+          onPressed: _selectedMonth.isBefore(
+                  DateTime(DateTime.now().year, DateTime.now().month, 1))
               ? () {
                   setState(() {
-                    _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 1);
+                    _selectedMonth = DateTime(
+                        _selectedMonth.year, _selectedMonth.month + 1, 1);
                   });
                 }
               : null,
@@ -342,72 +356,34 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _buildTotalCard(double pemasukan, double pengeluaran, double sisaUang) {
-  return Card(
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 4,
-    child: Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Sisa Uang', style: TextStyle(fontWeight: FontWeight.bold)),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'Rp ${NumberFormat('#,###').format(sisaUang)}', 
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+  Widget _buildTotalCard(
+      double pemasukan, double pengeluaran, double sisaUang) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Sisa Uang',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Rp ${NumberFormat('#,###').format(sisaUang)}',
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // For smaller screens, stack the cards vertically
-              if (constraints.maxWidth < 400) {
-                return Column(
-                  children: [
-                    _buildInfoCard(
-                      title: 'Pemasukan',
-                      amount: 'Rp ${NumberFormat('#,###').format(pemasukan)}',
-                      color: Colors.blueAccent,
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PemasukanAddPage(
-                              userReportDocRef: _userReportDocRef,
-                            ),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    _buildInfoCard(
-                      title: 'Pengeluaran',
-                      amount: 'Rp ${NumberFormat('#,###').format(pengeluaran)}',
-                      color: Colors.purpleAccent,
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PengeluaranAddPage(
-                              userReportDocRef: _userReportDocRef,
-                            ),
-                          ),
-                        );
-                        setState(() {});
-                      },
-                    ),
-                  ],
-                );
-              } 
-              // For larger screens, keep the horizontal layout
-              else {
-                return Row(
-                  children: [
-                    Expanded(
-                      child: _buildInfoCard(
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // For smaller screens, stack the cards vertically
+                if (constraints.maxWidth < 400) {
+                  return Column(
+                    children: [
+                      _buildInfoCard(
                         title: 'Pemasukan',
                         amount: 'Rp ${NumberFormat('#,###').format(pemasukan)}',
                         color: Colors.blueAccent,
@@ -423,12 +399,11 @@ class _ReportsPageState extends State<ReportsPage> {
                           setState(() {});
                         },
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildInfoCard(
+                      const SizedBox(height: 10),
+                      _buildInfoCard(
                         title: 'Pengeluaran',
-                        amount: 'Rp ${NumberFormat('#,###').format(pengeluaran)}',
+                        amount:
+                            'Rp ${NumberFormat('#,###').format(pengeluaran)}',
                         color: Colors.purpleAccent,
                         onPressed: () async {
                           await Navigator.push(
@@ -442,86 +417,129 @@ class _ReportsPageState extends State<ReportsPage> {
                           setState(() {});
                         },
                       ),
-                    ),
-                  ],
-                );
-              }
-            },
+                    ],
+                  );
+                }
+                // For larger screens, keep the horizontal layout
+                else {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoCard(
+                          title: 'Pemasukan',
+                          amount:
+                              'Rp ${NumberFormat('#,###').format(pemasukan)}',
+                          color: Colors.blueAccent,
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PemasukanAddPage(
+                                  userReportDocRef: _userReportDocRef,
+                                ),
+                              ),
+                            );
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildInfoCard(
+                          title: 'Pengeluaran',
+                          amount:
+                              'Rp ${NumberFormat('#,###').format(pengeluaran)}',
+                          color: Colors.purpleAccent,
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PengeluaranAddPage(
+                                  userReportDocRef: _userReportDocRef,
+                                ),
+                              ),
+                            );
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required String amount,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.5), color],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  amount,
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle, color: Colors.white),
+            onPressed: onPressed,
           ),
         ],
       ),
-    ),
-  );
-}
-
-  Widget _buildInfoCard({
-  required String title,
-  required String amount,
-  required Color color,
-  required VoidCallback onPressed,
-}) {
-  return Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      gradient: LinearGradient(
-        colors: [color.withOpacity(0.5), color],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title, 
-                style: const TextStyle(color: Colors.white),
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                amount, 
-                style: const TextStyle(
-                  fontSize: 18, 
-                  fontWeight: FontWeight.bold, 
-                  color: Colors.white
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.add_circle, color: Colors.white),
-          onPressed: onPressed,
-        ),
-      ],
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildBarChart(Map<String, Map<String, double>> monthlyData) {
     // Prepare data for the chart
     List<BarChartGroupData> barGroups = [];
     List<String> months = [];
-    
+
     // Sort months in chronological order
-    var sortedKeys = monthlyData.keys.toList()
-      ..sort((a, b) => a.compareTo(b));
-    
+    var sortedKeys = monthlyData.keys.toList()..sort((a, b) => a.compareTo(b));
+
     // Create bar groups for each month
     for (int i = 0; i < sortedKeys.length; i++) {
       String monthKey = sortedKeys[i];
       var data = monthlyData[monthKey]!;
-      
+
       // Format month for display (e.g., "Jun 2025")
       DateTime monthDate = DateFormat('yyyy-MM').parse(monthKey);
       String monthDisplay = DateFormat('MMM yyyy').format(monthDate);
       months.add(monthDisplay);
-      
+
       barGroups.add(
         BarChartGroupData(
           x: i,
@@ -548,8 +566,8 @@ class _ReportsPageState extends State<ReportsPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            const Text('Pemasukan & Pengeluaran (12 Bulan Terakhir)', 
-              style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Pemasukan & Pengeluaran (12 Bulan Terakhir)',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             SizedBox(
               height: 300,
@@ -565,17 +583,21 @@ class _ReportsPageState extends State<ReportsPage> {
                         String title;
                         Color color;
                         double value;
-                        
+
                         if (rodIndex == 0) {
                           title = 'Pemasukan';
                           color = Colors.blue;
-                          value = monthlyData[sortedKeys[group.x.toInt()]]!['pemasukan'] ?? 0;
+                          value = monthlyData[sortedKeys[group.x.toInt()]]![
+                                  'pemasukan'] ??
+                              0;
                         } else {
                           title = 'Pengeluaran';
                           color = Colors.purple;
-                          value = monthlyData[sortedKeys[group.x.toInt()]]!['pengeluaran'] ?? 0;
+                          value = monthlyData[sortedKeys[group.x.toInt()]]![
+                                  'pengeluaran'] ??
+                              0;
                         }
-                        
+
                         return BarTooltipItem(
                           '$title\nRp ${NumberFormat('#,###').format(value)}',
                           TextStyle(color: color, fontWeight: FontWeight.bold),
@@ -593,7 +615,8 @@ class _ReportsPageState extends State<ReportsPage> {
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
-                                months[value.toInt()].split(' ')[0], // Show only month abbreviation
+                                months[value.toInt()].split(
+                                    ' ')[0], // Show only month abbreviation
                                 style: const TextStyle(fontSize: 10),
                               ),
                             );
@@ -640,20 +663,22 @@ class _ReportsPageState extends State<ReportsPage> {
   Widget _buildCategoryLists(Map<String, Map<String, double>> categoryData) {
     // Prepare income data
     final incomeCategories = categoryData['pemasukan']?.entries.toList() ?? [];
-    final expenseCategories = categoryData['pengeluaran']?.entries.toList() ?? [];
+    final expenseCategories =
+        categoryData['pengeluaran']?.entries.toList() ?? [];
 
     return Column(
       children: [
         // Income Categories List
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 4,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                const Text('Kategori Pemasukan', 
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Kategori Pemasukan',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 if (incomeCategories.isEmpty)
                   const Padding(
@@ -676,17 +701,18 @@ class _ReportsPageState extends State<ReportsPage> {
           ),
         ),
         const SizedBox(height: 20),
-        
+
         // Expense Categories List
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 4,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                const Text('Kategori Pengeluaran', 
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Kategori Pengeluaran',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 if (expenseCategories.isEmpty)
                   const Padding(
@@ -828,9 +854,10 @@ class _ReportsPageState extends State<ReportsPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text('Pemasukan vs Pengeluaran ${DateFormat('MMMM yyyy').format(_selectedMonth)}', 
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
+            Text(
+                'Pemasukan vs Pengeluaran ${DateFormat('MMMM yyyy').format(_selectedMonth)}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 40),
             SizedBox(
               height: 200,
               child: PieChart(
@@ -854,7 +881,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -881,25 +908,31 @@ class _ReportsPageState extends State<ReportsPage> {
         setState(() => _selectedIndex = index);
         switch (index) {
           case 0:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomeScreen()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()));
             break;
           case 1:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BillsPage()));
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => BillsPage()));
             break;
           case 2:
             break;
           case 3:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => TargetPage()));
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => TargetPage()));
             break;
           case 4:
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => AccountPage()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => AccountPage()));
             break;
         }
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
-        BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money), label: 'Tagihan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.insert_chart), label: 'Laporan'),
         BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],

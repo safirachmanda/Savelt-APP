@@ -26,7 +26,9 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   Future<void> _selectDate(BuildContext context, bool isStart) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? (_startDate ?? DateTime.now()) : (_endDate ?? DateTime.now()),
+      initialDate: isStart
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? DateTime.now()),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
@@ -49,7 +51,7 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
     final name = _nameController.text;
     final targetAmount = int.tryParse(_targetAmountController.text) ?? 0;
     final User? user = _auth.currentUser;
-    
+
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Anda belum login')),
@@ -57,16 +59,21 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
       return;
     }
 
-    if (name.isEmpty || _startDate == null || _endDate == null || targetAmount < 500) {
+    if (name.isEmpty ||
+        _startDate == null ||
+        _endDate == null ||
+        targetAmount < 500) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Isi semua data dan pastikan target minimal 500')),
+        const SnackBar(
+            content: Text('Isi semua data dan pastikan target minimal 500')),
       );
       return;
     }
 
     if (_startDate!.isAfter(_endDate!)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tanggal mulai harus sebelum tanggal selesai')),
+        const SnackBar(
+            content: Text('Tanggal mulai harus sebelum tanggal selesai')),
       );
       return;
     }
@@ -84,15 +91,14 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
       }
 
       int totalAvailable = allDates.length;
-
       bool valid = false;
       int checklistCount = totalAvailable;
       int nominalPerChecklist = 0;
       List<DateTime> finalDates = [];
 
-      // Ulangi hingga nominal * checklistCount == target
       while (checklistCount > 0) {
-        nominalPerChecklist = _roundUpToNearest500((targetAmount / checklistCount).ceil());
+        nominalPerChecklist =
+            _roundUpToNearest500((targetAmount / checklistCount).ceil());
         int total = nominalPerChecklist * checklistCount;
 
         if (total == targetAmount) {
@@ -105,12 +111,15 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
 
       if (!valid) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak bisa membagi target pas sesuai kelipatan 500')),
+          const SnackBar(
+              content:
+                  Text('Tidak bisa membagi target pas sesuai kelipatan 500')),
         );
         return;
       }
 
-      final docRef = await FirebaseFirestore.instance.collection('target_tabungan').add({
+      final docRef =
+          await FirebaseFirestore.instance.collection('target_tabungan').add({
         'nama': name,
         'target': targetAmount,
         'targetTerkumpul': 0,
@@ -130,11 +139,10 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
         });
       }
 
-      // Show success message and navigate back
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Target berhasil disimpan')),
       );
-      Navigator.pop(context); // Navigate back to previous screen
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan: $e')),
@@ -145,88 +153,192 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Tambah Target Tabungan'),
+        title: const Text(
+          'Tambah Target Tabungan',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Color(0xFF6A5ACD), // Consistent purple color
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        elevation: 0,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: SingleChildScrollView(
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Nama Tabungan'),
-              TextField(
+              const SizedBox(height: 20),
+              _buildInputField(
+                label: 'Nama Tabungan',
+                hint: 'Contoh: Kamera',
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Contoh: Kamera',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text('Target Jumlah (minimal Rp500)'),
-              TextField(
-                controller: _targetAmountController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: 'Contoh: 2000000',
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text('Tanggal Mulai'),
-              Row(
-                children: [
-                  Text(_startDate == null
-                      ? 'Belum dipilih'
-                      : DateFormat('dd/MM/yyyy').format(_startDate!)),
-                  TextButton(
-                    onPressed: () => _selectDate(context, true),
-                    child: const Text('Pilih'),
-                  ),
-                ],
-              ),
-              const Text('Tanggal Selesai'),
-              Row(
-                children: [
-                  Text(_endDate == null
-                      ? 'Belum dipilih'
-                      : DateFormat('dd/MM/yyyy').format(_endDate!)),
-                  TextButton(
-                    onPressed: () => _selectDate(context, false),
-                    child: const Text('Pilih'),
-                  ),
-                ],
-              ),
-              const Text('Frekuensi Menabung'),
-              DropdownButton<String>(
-                value: _selectedFrequency,
-                isExpanded: true,
-                items: frequencyOptions.map((f) {
-                  return DropdownMenuItem<String>(
-                    value: f['value'],
-                    child: Text(f['label']!),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _selectedFrequency = val;
-                    });
-                  }
-                },
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _saveTargetToFirebase,
-                child: const Text('Simpan Target'),
-              )
+              _buildInputField(
+                label: 'Target Jumlah (minimal Rp500)',
+                hint: 'Contoh: 2000000',
+                controller: _targetAmountController,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 20),
+              _buildDateField(
+                label: 'Tanggal Mulai',
+                date: _startDate,
+                onPressed: () => _selectDate(context, true),
+              ),
+              const SizedBox(height: 20),
+              _buildDateField(
+                label: 'Tanggal Selesai',
+                date: _endDate,
+                onPressed: () => _selectDate(context, false),
+              ),
+              const SizedBox(height: 20),
+              _buildSection(
+                title: 'Frekuensi Menabung',
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _selectedFrequency,
+                    isExpanded: true,
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Colors.black, fontSize: 16),
+                    underline: const SizedBox(),
+                    items: frequencyOptions.map((f) {
+                      return DropdownMenuItem<String>(
+                        value: f['value'],
+                        child: Text(f['label']!),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedFrequency = val;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveTargetToFirebase,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Color(0xFF6A5ACD), // Consistent purple color
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'SIMPAN TARGET',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return _buildSection(
+      title: label,
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.black),
+        decoration: InputDecoration(
+          hintText: hint,
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required DateTime? date,
+    required VoidCallback onPressed,
+  }) {
+    return _buildSection(
+      title: label,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                date == null
+                    ? 'Pilih tanggal'
+                    : DateFormat('dd/MM/yyyy').format(date),
+                style: TextStyle(fontSize: 16),
+              ),
+              Icon(Icons.calendar_today, color: Color(0xFF6A5ACD)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }

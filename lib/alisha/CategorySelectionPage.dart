@@ -7,7 +7,8 @@ class CategorySelectionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Pilih Kategori Tagihan"),
+        title: Text('Pilih Kategori Tagihan',
+            style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blue,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -44,7 +45,8 @@ class CategorySelectionPage extends StatelessWidget {
                   CategoryItem(icon: Icons.shield, title: 'Insurance'),
                   CategoryItem(icon: Icons.water, title: 'Water'),
                   CategoryItem(icon: Icons.apartment, title: 'Property Tax'),
-                  CategoryItem(icon: Icons.health_and_safety, title: 'Health Insurance'),
+                  CategoryItem(
+                      icon: Icons.health_and_safety, title: 'Health Insurance'),
                   CategoryItem(icon: Icons.movie, title: 'Entertainment'),
                   CategoryItem(icon: Icons.school, title: 'Education'),
                   CategoryItem(icon: Icons.directions_car, title: 'Car Loan'),
@@ -89,7 +91,8 @@ class CategoryItem extends StatelessWidget {
             child: Icon(icon, color: Colors.blue, size: 30),
           ),
           SizedBox(height: 8),
-          Text(title, textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+          Text(title,
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
         ],
       ),
     );
