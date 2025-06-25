@@ -78,12 +78,6 @@ class _BillsPageState extends State<BillsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.bug_report),
-            onPressed: () => _showDebugInfo(context),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
@@ -171,7 +165,7 @@ class _BillsPageState extends State<BillsPage> {
             SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () {
-                _addDebugLog('Navigating to CategorySelectionPage');
+               
                 Navigator.push(
                   context,
                   MaterialPageRoute(

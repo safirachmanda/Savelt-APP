@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'TargetPage.dart'; // Make sure this import points to your TargetPage file
 
 class TargetBaruPage extends StatefulWidget {
   @override
@@ -16,6 +17,7 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   DateTime? _endDate;
   String _selectedFrequency = 'Harian';
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _isSaving = false; // Added loading state
 
   final List<Map<String, String>> frequencyOptions = [
     {'label': 'Harian', 'value': 'Harian'},
@@ -48,6 +50,12 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
   }
 
   Future<void> _saveTargetToFirebase() async {
+    if (_isSaving) return; // Prevent multiple clicks
+    
+    setState(() {
+      _isSaving = true;
+    });
+
     final name = _nameController.text;
     final targetAmount = int.tryParse(_targetAmountController.text) ?? 0;
     final User? user = _auth.currentUser;
@@ -56,6 +64,9 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Anda belum login')),
       );
+      setState(() {
+        _isSaving = false;
+      });
       return;
     }
 
@@ -67,6 +78,9 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
         const SnackBar(
             content: Text('Isi semua data dan pastikan target minimal 500')),
       );
+      setState(() {
+        _isSaving = false;
+      });
       return;
     }
 
@@ -75,6 +89,9 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
         const SnackBar(
             content: Text('Tanggal mulai harus sebelum tanggal selesai')),
       );
+      setState(() {
+        _isSaving = false;
+      });
       return;
     }
 
@@ -115,6 +132,9 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
               content:
                   Text('Tidak bisa membagi target pas sesuai kelipatan 500')),
         );
+        setState(() {
+          _isSaving = false;
+        });
         return;
       }
 
@@ -130,23 +150,39 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
         'uid': user.uid,
       });
 
+      // Save all checklist items
+      final batch = FirebaseFirestore.instance.batch();
+      final checklistCollection = docRef.collection('checklist');
+      
       for (final date in finalDates) {
-        await docRef.collection('checklist').add({
+        final doc = checklistCollection.doc();
+        batch.set(doc, {
           'tanggalMenabung': date.toIso8601String(),
           'nominal': nominalPerChecklist,
           'status': false,
           'uid': user.uid,
         });
       }
+      
+      await batch.commit();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Target berhasil disimpan')),
       );
-      Navigator.pop(context);
+
+      // Navigate back to TargetPage and remove current page from stack
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => TargetPage()),
+        (Route<dynamic> route) => false,
+      );
+      
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan: $e')),
       );
+      setState(() {
+        _isSaving = false;
+      });
     }
   }
 
@@ -159,7 +195,7 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
           'Tambah Target Tabungan',
           style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Color(0xFF6A5ACD), // Consistent purple color
+        backgroundColor: Color(0xFF6A5ACD),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -233,24 +269,25 @@ class _TargetBaruPageState extends State<TargetBaruPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _saveTargetToFirebase,
+                  onPressed: _isSaving ? null : _saveTargetToFirebase,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Color(0xFF6A5ACD), // Consistent purple color
+                    backgroundColor: Color(0xFF6A5ACD),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'SIMPAN TARGET',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'SIMPAN TARGET',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
             ],
