@@ -94,7 +94,7 @@ class _TargetPageState extends State<TargetPage> {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));
                 }
-                
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(child: CircularProgressIndicator());
                 }
@@ -116,9 +116,10 @@ class _TargetPageState extends State<TargetPage> {
                     final doc = docs[index];
                     final data = doc.data() as Map<String, dynamic>;
                     final docId = doc.id;
-                    final targetAmount = (data['target'] as num?)?.toDouble() ?? 0.0;
+                    final targetAmount =
+                        (data['target'] as num?)?.toDouble() ?? 0.0;
                     final name = data['nama'] ?? 'Target Tanpa Nama';
-                    
+
                     // Handle date parsing safely
                     final startDate = _parseDate(data['mulaiMenabung']);
                     final endDate = _parseDate(data['selesaiMenabung']);
@@ -126,14 +127,22 @@ class _TargetPageState extends State<TargetPage> {
                     return FutureBuilder<double>(
                       future: _calculateSavedAmount(docId),
                       builder: (context, savedSnapshot) {
-                        final savedAmount = savedSnapshot.hasData ? savedSnapshot.data! : 0.0;
-                        final progress = targetAmount > 0 ? (savedAmount / targetAmount).clamp(0.0, 1.0) : 0.0;
+                        final savedAmount =
+                            savedSnapshot.hasData ? savedSnapshot.data! : 0.0;
+                        final progress = targetAmount > 0
+                            ? (savedAmount / targetAmount).clamp(0.0, 1.0)
+                            : 0.0;
 
                         // Update saved amount in Firestore if different
                         if (savedSnapshot.hasData) {
-                          final currentSaved = (data['targetTerkumpul'] as num?)?.toDouble() ?? 0.0;
+                          final currentSaved =
+                              (data['targetTerkumpul'] as num?)?.toDouble() ??
+                                  0.0;
                           if (currentSaved != savedAmount) {
-                            _firestore.collection('target_tabungan').doc(docId).update({
+                            _firestore
+                                .collection('target_tabungan')
+                                .doc(docId)
+                                .update({
                               'targetTerkumpul': savedAmount,
                             });
                           }
@@ -149,8 +158,8 @@ class _TargetPageState extends State<TargetPage> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Color(0xFF4CA1AF),
-                                  Color(0xFF2C3E50),
+                                  Color.fromARGB(255, 108, 129, 236),
+                                  Color.fromARGB(255, 182, 138, 174),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -173,7 +182,8 @@ class _TargetPageState extends State<TargetPage> {
                                   LinearProgressIndicator(
                                     value: progress,
                                     backgroundColor: Colors.white24,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
                                     minHeight: 6,
                                   ),
                                   SizedBox(height: 8),
@@ -190,7 +200,8 @@ class _TargetPageState extends State<TargetPage> {
                                 Padding(
                                   padding: EdgeInsets.all(16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       _buildDetailRow(
                                         Icons.calendar_today,
@@ -208,19 +219,23 @@ class _TargetPageState extends State<TargetPage> {
                                       ),
                                       SizedBox(height: 16),
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           ElevatedButton(
-                                            onPressed: () => _deleteTarget(docId),
+                                            onPressed: () =>
+                                                _deleteTarget(docId),
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.red[700],
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                             ),
                                             child: Text(
                                               'Hapus',
-                                              style: TextStyle(color: Colors.white),
+                                              style: TextStyle(
+                                                  color: Colors.white),
                                             ),
                                           ),
                                           ElevatedButton(
@@ -235,14 +250,17 @@ class _TargetPageState extends State<TargetPage> {
                                               );
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.green[700],
+                                              backgroundColor:
+                                                  Colors.green[700],
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                             ),
                                             child: Text(
                                               'Lihat Checklist',
-                                              style: TextStyle(color: Colors.white),
+                                              style: TextStyle(
+                                                  color: Colors.white),
                                             ),
                                           ),
                                         ],
@@ -326,8 +344,10 @@ class _TargetPageState extends State<TargetPage> {
       },
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
-        BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.attach_money), label: 'Tagihan'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.insert_chart), label: 'Laporan'),
         BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],

@@ -1,0 +1,2 @@
+C:/Users/radfa/Desktop/Kunci kehidupan/SEM 4/Savelt-APP/android/app/.cxx/RelWithDebInfo/6y1j3814/x86/CMakeFiles/edit_cache.dir
+C:/Users/radfa/Desktop/Kunci kehidupan/SEM 4/Savelt-APP/android/app/.cxx/RelWithDebInfo/6y1j3814/x86/CMakeFiles/rebuild_cache.dir

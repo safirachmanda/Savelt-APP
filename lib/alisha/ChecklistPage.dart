@@ -35,7 +35,10 @@ class _ChecklistPageState extends State<ChecklistPage> {
   }
 
   Future<Map<String, dynamic>> _fetchTabunganData() async {
-    final doc = await _firestore.collection('target_tabungan').doc(widget.tabunganId).get();
+    final doc = await _firestore
+        .collection('target_tabungan')
+        .doc(widget.tabunganId)
+        .get();
     if (!doc.exists) {
       throw Exception('Document not found');
     }
@@ -45,8 +48,8 @@ class _ChecklistPageState extends State<ChecklistPage> {
   Future<void> _handleChecklistTap(DocumentSnapshot doc) async {
     final now = DateTime.now();
     final tgl = _parseDate(doc['tanggalMenabung']);
-    final isPastOrToday = tgl.isBefore(now) || 
-                         (tgl.year == now.year && tgl.month == now.month && tgl.day == now.day);
+    final isPastOrToday = tgl.isBefore(now) ||
+        (tgl.year == now.year && tgl.month == now.month && tgl.day == now.day);
     final isChecked = doc['status'] ?? false;
 
     if (!isChecked && isPastOrToday) {
@@ -88,9 +91,18 @@ class _ChecklistPageState extends State<ChecklistPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Checklist Tabungan'),
-        backgroundColor: const Color.fromARGB(104, 211, 44, 183),
+        title: const Text(
+          'Checklist Tabungan',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color.fromARGB(255, 131, 120, 201),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        elevation: 0,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _tabunganData,
@@ -137,48 +149,82 @@ class _ChecklistPageState extends State<ChecklistPage> {
               }
 
               return ListView.builder(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 itemCount: docs.length,
                 itemBuilder: (context, index) {
                   final doc = docs[index];
                   final tanggal = _parseDate(doc['tanggalMenabung']);
                   final status = doc['status'] ?? false;
-                  final nominal = (doc['nominal'] as num?)?.toInt() ?? nominalPerHari;
-                  final isPastOrToday = tanggal.isBefore(now) || 
-                                      (tanggal.year == now.year && 
-                                       tanggal.month == now.month && 
-                                       tanggal.day == now.day);
+                  final nominal =
+                      (doc['nominal'] as num?)?.toInt() ?? nominalPerHari;
+                  final isPastOrToday = tanggal.isBefore(now) ||
+                      (tanggal.year == now.year &&
+                          tanggal.month == now.month &&
+                          tanggal.day == now.day);
 
-                  return Card(
-                    shape: RoundedRectangleBorder(
+                  return Container(
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 2,
+                          blurRadius: 5,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    elevation: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
                     child: ListTile(
-                      leading: Icon(
-                        status ? Icons.check_circle : Icons.radio_button_unchecked,
-                        color: status ? Colors.green : Colors.grey,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: status
+                              ? const Color.fromARGB(255, 131, 120, 201)
+                                  .withOpacity(0.2)
+                              : Colors.grey[200],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          status
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: status
+                              ? const Color.fromARGB(255, 131, 120, 201)
+                              : Colors.grey[600],
+                        ),
                       ),
                       title: Text(
-                        DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(tanggal),
+                        DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
+                            .format(tanggal),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
+                          color: Colors.black,
                         ),
                       ),
                       subtitle: Text(
-                        'Rp${nominal.toString()}',
-                        style: const TextStyle(fontSize: 14),
+                        'Rp${NumberFormat('#,###').format(nominal)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
                       ),
                       trailing: status
                           ? const Icon(Icons.lock, color: Colors.grey)
                           : isPastOrToday
                               ? IconButton(
-                                  icon: const Icon(Icons.check, color: Colors.teal),
+                                  icon: const Icon(Icons.check,
+                                      color:
+                                          Color.fromARGB(255, 131, 120, 201)),
                                   onPressed: () => _handleChecklistTap(doc),
                                 )
-                              : const Icon(Icons.lock_outline, color: Colors.grey),
+                              : const Icon(Icons.lock_outline,
+                                  color: Colors.grey),
                     ),
                   );
                 },

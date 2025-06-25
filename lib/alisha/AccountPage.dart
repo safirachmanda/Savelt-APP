@@ -39,16 +39,18 @@ class _AccountPageState extends State<AccountPage> {
           .doc(user.uid)
           .get();
 
-      final createdAt = userDoc.exists ? userDoc.get('createdAt') as Timestamp? : null;
-      final updatedAt = userDoc.exists ? userDoc.get('updatedAt') as Timestamp? : null;
+      final createdAt =
+          userDoc.exists ? userDoc.get('createdAt') as Timestamp? : null;
+      final updatedAt =
+          userDoc.exists ? userDoc.get('updatedAt') as Timestamp? : null;
 
       setState(() {
         _nameController.text = user.displayName ?? '';
         _emailController.text = user.email ?? '';
-        _base64Image = userDoc.exists && 
-                        userDoc.data()!.containsKey('profileImage') && 
-                        (userDoc.get('profileImage') != '') 
-            ? userDoc.get('profileImage') 
+        _base64Image = userDoc.exists &&
+                userDoc.data()!.containsKey('profileImage') &&
+                (userDoc.get('profileImage') != '')
+            ? userDoc.get('profileImage')
             : null;
         _createdAt = createdAt?.toDate();
         _updatedAt = updatedAt?.toDate();
@@ -141,7 +143,8 @@ class _AccountPageState extends State<AccountPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hapus Akun'),
-        content: const Text('Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.'),
+        content: const Text(
+            'Apakah Anda yakin ingin menghapus akun ini? Tindakan ini tidak dapat dibatalkan.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -158,7 +161,10 @@ class _AccountPageState extends State<AccountPage> {
 
     if (confirmed == true) {
       try {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).delete();
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .delete();
         await user.delete();
         Navigator.pop(context);
       } on FirebaseAuthException catch (e) {
@@ -196,7 +202,7 @@ class _AccountPageState extends State<AccountPage> {
       children: [
         ListTile(
           title: const Text('Nama'),
-          subtitle: _isEditing 
+          subtitle: _isEditing
               ? TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -207,7 +213,7 @@ class _AccountPageState extends State<AccountPage> {
         ),
         ListTile(
           title: const Text('Email'),
-          subtitle: _isEditing 
+          subtitle: _isEditing
               ? TextField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -233,12 +239,14 @@ class _AccountPageState extends State<AccountPage> {
         if (_createdAt != null)
           ListTile(
             title: const Text('Akun dibuat pada'),
-            subtitle: Text(DateFormat('dd MMMM yyyy HH:mm').format(_createdAt!)),
+            subtitle:
+                Text(DateFormat('dd MMMM yyyy HH:mm').format(_createdAt!)),
           ),
         if (_updatedAt != null)
           ListTile(
             title: const Text('Terakhir diperbarui'),
-            subtitle: Text(DateFormat('dd MMMM yyyy HH:mm').format(_updatedAt!)),
+            subtitle:
+                Text(DateFormat('dd MMMM yyyy HH:mm').format(_updatedAt!)),
           ),
       ],
     );
@@ -286,12 +294,11 @@ class _AccountPageState extends State<AccountPage> {
           const SizedBox(height: 20),
           TextButton(
             onPressed: _signOut,
-            child: const Text('SIGN OUT', 
-                style: TextStyle(color: Colors.red)),
+            child: const Text('SIGN OUT', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: _deleteAccount,
-            child: const Text('DELETE ACCOUNT', 
+            child: const Text('DELETE ACCOUNT',
                 style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -325,7 +332,8 @@ class _AccountPageState extends State<AccountPage> {
                               child: CircleAvatar(
                                 radius: 15,
                                 backgroundColor: Colors.blue,
-                                child: Icon(Icons.edit, size: 18, color: Colors.white),
+                                child: Icon(Icons.edit,
+                                    size: 18, color: Colors.white),
                               ),
                             ),
                         ],
@@ -351,42 +359,44 @@ class _AccountPageState extends State<AccountPage> {
         unselectedItemColor: Colors.white70,
         onTap: (index) {
           switch (index) {
-          case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-            break;
-          case 1:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => BillsPage()),
-            );
-            break;
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ReportsPage()),
-            );
-            break;
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => TargetPage()),
-            );
-            break;
-          case 4:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => AccountPage()),
-            );
-            break;
+            case 0:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+              );
+              break;
+            case 1:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => BillsPage()),
+              );
+              break;
+            case 2:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ReportsPage()),
+              );
+              break;
+            case 3:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => TargetPage()),
+              );
+              break;
+            case 4:
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => AccountPage()),
+              );
+              break;
           }
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Tagihan'),
-          BottomNavigationBarItem(icon: Icon(Icons.insert_chart), label: 'Laporan'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.attach_money), label: 'Tagihan'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.insert_chart), label: 'Laporan'),
           BottomNavigationBarItem(icon: Icon(Icons.savings), label: 'Target'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],

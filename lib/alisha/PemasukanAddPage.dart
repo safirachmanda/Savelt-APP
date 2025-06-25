@@ -6,7 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class PemasukanAddPage extends StatefulWidget {
   final DocumentReference userReportDocRef;
 
-  const PemasukanAddPage({Key? key, required this.userReportDocRef}) : super(key: key);
+  const PemasukanAddPage({Key? key, required this.userReportDocRef})
+      : super(key: key);
 
   @override
   _PemasukanAddPageState createState() => _PemasukanAddPageState();
@@ -53,20 +54,21 @@ class _PemasukanAddPageState extends State<PemasukanAddPage> {
     setState(() => _isLoading = true);
 
     try {
-      final nominal = int.parse(_nominalController.text.replaceAll(RegExp(r'[^0-9]'), ''));
+      final nominal =
+          int.parse(_nominalController.text.replaceAll(RegExp(r'[^0-9]'), ''));
 
       await FirebaseFirestore.instance
           .collection('reports')
           .doc(widget.userReportDocRef.id)
           .collection('pemasukan')
           .add({
-            'tanggal': DateFormat('yyyy-MM-dd').format(_selectedDate),
-            'timestamp': _selectedDate,
-            'nominal': nominal,
-            'kategori': _selectedKategori!,
-            'keterangan': _keteranganController.text,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        'tanggal': DateFormat('yyyy-MM-dd').format(_selectedDate),
+        'timestamp': _selectedDate,
+        'nominal': nominal,
+        'kategori': _selectedKategori!,
+        'keterangan': _keteranganController.text,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,12 +95,18 @@ class _PemasukanAddPageState extends State<PemasukanAddPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Tambah Pemasukan'),
+        title: const Text(
+          'Tambah Pemasukan',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.blueAccent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: Column(
@@ -120,68 +128,125 @@ class _PemasukanAddPageState extends State<PemasukanAddPage> {
   }
 
   Widget _buildDateInput() {
-    return InkWell(
-      onTap: _pickDate,
-      child: InputDecorator(
-        decoration: const InputDecoration(
-          labelText: 'Tanggal',
-          border: OutlineInputBorder(),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(DateFormat('dd MMMM yyyy').format(_selectedDate)),
-            const Icon(Icons.calendar_today, color: Colors.grey),
-          ],
+    return _buildSection(
+      title: 'Tanggal',
+      child: GestureDetector(
+        onTap: _pickDate,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('dd MMMM yyyy').format(_selectedDate),
+                style: const TextStyle(fontSize: 16),
+              ),
+              const Icon(Icons.calendar_today, color: Colors.blueAccent),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildNominalInput() {
-    return TextFormField(
-      controller: _nominalController,
-      keyboardType: TextInputType.number,
-      decoration: const InputDecoration(
-        labelText: 'Nominal',
-        prefixText: 'Rp ',
-        border: OutlineInputBorder(),
+    return _buildSection(
+      title: 'Nominal',
+      child: TextFormField(
+        controller: _nominalController,
+        keyboardType: TextInputType.number,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          prefixText: 'Rp ',
+          hintText: 'Masukkan nominal',
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+        validator: (value) {
+          if (value == null || value.isEmpty) return 'Masukkan nominal';
+          final cleanValue = value.replaceAll(RegExp(r'[^0-9]'), '');
+          if (cleanValue.isEmpty || int.tryParse(cleanValue) == null) {
+            return 'Masukkan angka yang valid';
+          }
+          return null;
+        },
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Masukkan nominal';
-        final cleanValue = value.replaceAll(RegExp(r'[^0-9]'), '');
-        if (cleanValue.isEmpty || int.tryParse(cleanValue) == null) {
-          return 'Masukkan angka yang valid';
-        }
-        return null;
-      },
     );
   }
 
   Widget _buildKategoriDropdown() {
-    return DropdownButtonFormField<String>(
-      value: _selectedKategori,
-      items: _kategoriList.map((kategori) => DropdownMenuItem(
-        value: kategori,
-        child: Text(kategori),
-      )).toList(),
-      decoration: const InputDecoration(
-        labelText: 'Kategori',
-        border: OutlineInputBorder(),
+    return _buildSection(
+      title: 'Kategori',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: DropdownButtonFormField<String>(
+          value: _selectedKategori,
+          isExpanded: true,
+          style: const TextStyle(fontSize: 16),
+          decoration: const InputDecoration(border: InputBorder.none),
+          hint: const Text('Pilih kategori'),
+          items: _kategoriList
+              .map((kategori) => DropdownMenuItem(
+                    value: kategori,
+                    child: Text(
+                      kategori,
+                      style: const TextStyle(
+                          fontSize: 16, color: Color.fromARGB(221, 30, 30, 30)),
+                    ),
+                  ))
+              .toList(),
+          onChanged: (value) => setState(() => _selectedKategori = value),
+          validator: (value) => value == null ? 'Pilih kategori' : null,
+          dropdownColor: const Color.fromARGB(255, 255, 255, 255),
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
+        ),
       ),
-      onChanged: (value) => setState(() => _selectedKategori = value),
-      validator: (value) => value == null ? 'Pilih kategori' : null,
     );
   }
 
   Widget _buildKeteranganInput() {
-    return TextFormField(
-      controller: _keteranganController,
-      decoration: const InputDecoration(
-        labelText: 'Keterangan (opsional)',
-        border: OutlineInputBorder(),
+    return _buildSection(
+      title: 'Keterangan (opsional)',
+      child: TextFormField(
+        controller: _keteranganController,
+        style: const TextStyle(fontSize: 16),
+        decoration: InputDecoration(
+          hintText: 'Masukkan keterangan',
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+        ),
+        maxLines: 2,
       ),
-      maxLines: 2,
     );
   }
 
@@ -191,10 +256,12 @@ class _PemasukanAddPageState extends State<PemasukanAddPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _submitForm,
         style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
           ),
+          elevation: 0,
         ),
         child: _isLoading
             ? const SizedBox(
@@ -206,11 +273,32 @@ class _PemasukanAddPageState extends State<PemasukanAddPage> {
                 ),
               )
             : const Text(
-                'Simpan Pemasukan',
-                style: TextStyle(fontSize: 16),
+                'SIMPAN PEMASUKAN',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
       ),
     );
   }
-}
 
+  Widget _buildSection({required String title, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}

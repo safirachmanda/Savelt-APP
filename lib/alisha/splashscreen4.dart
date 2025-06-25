@@ -21,12 +21,16 @@ class SplashScreen4 extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const SplashScreen6()),
+                    MaterialPageRoute(
+                        builder: (context) => const SplashScreen6()),
                   );
                 },
                 child: const Text(
                   "Skip",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
                 ),
               ),
             ),
@@ -46,7 +50,8 @@ class SplashScreen4 extends StatelessWidget {
               clipper: WaveClipper(),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Colors.purple, Colors.lightBlueAccent],
@@ -64,11 +69,11 @@ class SplashScreen4 extends StatelessWidget {
                           TextSpan(
                             text: '\nPANTAU\n',
                             style: TextStyle(
-                              fontSize: 45,
+                              fontSize: 40,
                               fontWeight: FontWeight.bold,
                               fontFamily: 'Inter',
                               color: Colors.white,
-                              height: 1.0, 
+                              height: 1.0,
                             ),
                           ),
                           TextSpan(
@@ -99,14 +104,17 @@ class SplashScreen4 extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SplashScreen3()),
+                              MaterialPageRoute(
+                                  builder: (context) => const SplashScreen3()),
                             );
                           },
-                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                          icon: const Icon(Icons.arrow_back,
+                              color: Colors.white, size: 28),
                         ),
                         // Indikator halaman (5 lingkaran)
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center, // Pusatkan indikator
+                          mainAxisAlignment:
+                              MainAxisAlignment.center, // Pusatkan indikator
                           children: List.generate(5, (index) {
                             return Container(
                               margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -114,8 +122,12 @@ class SplashScreen4 extends StatelessWidget {
                               height: 12,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: index == 3 ? Colors.white : Colors.transparent, // Lingkaran ke-4 berisi warna
-                                border: Border.all(color: Colors.white, width: 2),
+                                color: index == 3
+                                    ? Colors.white
+                                    : Colors
+                                        .transparent, // Lingkaran ke-4 berisi warna
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
                               ),
                             );
                           }),
@@ -125,10 +137,12 @@ class SplashScreen4 extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => const SplashScreen5()),
+                              MaterialPageRoute(
+                                  builder: (context) => const SplashScreen5()),
                             );
                           },
-                          icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 28),
+                          icon: const Icon(Icons.arrow_forward,
+                              color: Colors.white, size: 28),
                         ),
                       ],
                     ),
@@ -150,8 +164,10 @@ class WaveClipper extends CustomClipper<Path> {
     Path path = Path();
     path.lineTo(0, size.height * 0.15);
 
-    path.quadraticBezierTo(size.width / 4, size.height * 0.08, size.width / 2, size.height * 0.15);
-    path.quadraticBezierTo(size.width * 3 / 4, size.height * 0.25, size.width, size.height * 0.15);
+    path.quadraticBezierTo(
+        size.width / 4, size.height * 0.08, size.width / 2, size.height * 0.15);
+    path.quadraticBezierTo(
+        size.width * 3 / 4, size.height * 0.25, size.width, size.height * 0.15);
 
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
